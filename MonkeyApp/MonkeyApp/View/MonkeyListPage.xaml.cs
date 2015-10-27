@@ -1,4 +1,5 @@
-﻿using MonkeyApp.ViewModel;
+﻿using MonkeyApp.Model;
+using MonkeyApp.ViewModel;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -41,6 +42,18 @@ namespace MonkeyApp.View
 
                 ButtonGetMonkeys.IsEnabled = true;
 
+            };
+
+            ListViewMonkeys.ItemSelected += async (sender, args) =>
+            {
+                if (ListViewMonkeys.SelectedItem == null)
+                    return;
+
+                var monkey = ListViewMonkeys.SelectedItem as Monkey;
+                var page = new MonkeyPage(monkey);
+                await Navigation.PushAsync(page);
+
+                ListViewMonkeys.SelectedItem = null;
             };
 
         }
