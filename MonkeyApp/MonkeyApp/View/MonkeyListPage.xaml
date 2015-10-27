@@ -1,0 +1,21 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://xamarin.com/schemas/2014/forms"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="MonkeyApp.View.MonkeyListPage"
+             Title="Monkeys">
+    <StackLayout>
+        <ActivityIndicator IsRunning="{Binding IsBusy}"
+                           IsVisible="{Binding IsBusy}"/>
+
+        <ListView x:Name="ListViewMonkeys" ItemsSource="{Binding Monkeys}">
+            <ListView.ItemTemplate>
+                <DataTemplate>
+                    <ImageCell Text="{Binding Name}"
+                               Detail="{Binding Location}"
+                               ImageSource="{Binding Image}"/>
+                </DataTemplate>
+            </ListView.ItemTemplate>
+        </ListView>
+        <Button x:Name="ButtonGetMonkeys" Text="Get Monkeys"/>
+    </StackLayout>
+</ContentPage>
