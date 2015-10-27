@@ -1,5 +1,7 @@
-﻿using MonkeyApp.Model;
+﻿using MonkeyApp.Interfaces;
+using MonkeyApp.Model;
 using MonkeyApp.ViewModel;
+using Refractored.Xam.TTS;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -20,6 +22,12 @@ namespace MonkeyApp.View
             ButtonDismiss.Clicked += (sender, args) =>
             {
                 Navigation.PopAsync(true);
+            };
+
+            ButtonSpeak.Clicked += (sender, args) =>
+            {
+                //DependencyService.Get<ITextToSpeech>().Speak(monkey.Details);
+                CrossTextToSpeech.Current.Speak(monkey.Details);
             };
         }
     }

@@ -12,6 +12,7 @@
             <Label Text="{Binding Monkey.Population, StringFormat='Population: {0}'}"/>
             <Label Text="{Binding Monkey.Details}"/>
             <Button x:Name="ButtonDismiss" Text="Dismiss"/>
+            <Button x:Name="ButtonSpeak" Text="Speak Monkey"/>
         </StackLayout>
     </ScrollView>
 </ContentPage>
