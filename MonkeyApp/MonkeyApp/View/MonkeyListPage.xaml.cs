@@ -17,45 +17,23 @@ namespace MonkeyApp.View
         {
             InitializeComponent();
 
-            vm = new MonkeyListViewModel();
+            vm = new MonkeyListViewModel(Navigation);
             BindingContext = vm;
+        }
 
-            ButtonGetMonkeys.Clicked += async (sender, args) =>
+        protected override void OnAppearing()
+        {
+            base.OnAppearing();
+            MessagingCenter.Subscribe<Exception>(this, "error", async (ex) =>
             {
-                ButtonGetMonkeys.IsEnabled = false;
+                await DisplayAlert("Error", "Unable to get monkeys: " + ex.Message, "OK");
+            });
+        }
 
-                Exception ex = null;
-
-                try
-                {
-                    await vm.GetMonkeysAsync();
-                }
-                catch (Exception e)
-                {
-                    ex = e;
-                }
-
-                if (ex != null)
-                {
-                    await DisplayAlert("Error", "Unable to get monkeys: " + ex.Message, "OK");
-                }
-
-                ButtonGetMonkeys.IsEnabled = true;
-
-            };
-
-            ListViewMonkeys.ItemSelected += async (sender, args) =>
-            {
-                if (ListViewMonkeys.SelectedItem == null)
-                    return;
-
-                var monkey = ListViewMonkeys.SelectedItem as Monkey;
-                var page = new MonkeyPage(monkey);
-                await Navigation.PushAsync(page);
-
-                ListViewMonkeys.SelectedItem = null;
-            };
-
+        protected override void OnDisappearing()
+        {
+            base.OnDisappearing();
+            MessagingCenter.Unsubscribe<Exception>(this, "error");
         }
     }
 }

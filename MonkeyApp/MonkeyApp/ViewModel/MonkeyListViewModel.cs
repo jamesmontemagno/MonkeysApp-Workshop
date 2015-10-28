@@ -1,4 +1,5 @@
 ﻿using MonkeyApp.Model;
+using MonkeyApp.View;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -8,6 +9,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
+using Xamarin.Forms;
 
 namespace MonkeyApp.ViewModel
 {
@@ -15,9 +17,29 @@ namespace MonkeyApp.ViewModel
     {
         public ObservableCollection<Monkey> Monkeys { get; set; }
 
-        public MonkeyListViewModel()
+        INavigation navigation;
+        public MonkeyListViewModel(INavigation navigation)
         {
+            this.navigation = navigation;
             Monkeys = new ObservableCollection<Monkey>();
+        }
+
+        Monkey selectedMonkey;
+        public Monkey SelectedMonkey
+        {
+            get { return selectedMonkey; }
+            set
+            {
+                selectedMonkey = value;
+                OnPropertyChanged("SelectedMonkey");
+                if (selectedMonkey == null)
+                    return;
+
+                var page = new MonkeyPage(selectedMonkey);
+
+                SelectedMonkey = null;
+                navigation.PushAsync(page);
+            }
         }
 
 
@@ -33,6 +55,19 @@ namespace MonkeyApp.ViewModel
 
                 busy = value;
                 OnPropertyChanged("IsBusy");
+                GetMonkeysCommand.ChangeCanExecute();
+            }
+        }
+
+        Command getMonkeysCommand;
+        public Command GetMonkeysCommand
+        {
+            get
+            {
+                return getMonkeysCommand ??
+                 (getMonkeysCommand =
+                 new Command(async () => await GetMonkeysAsync(),
+                 () => !IsBusy));
             }
         }
 
@@ -54,6 +89,10 @@ namespace MonkeyApp.ViewModel
                     Monkeys.Add(item);
                 }
 
+            }
+            catch(Exception ex)
+            {
+                MessagingCenter.Send(ex, "error");
             }
             finally
             {

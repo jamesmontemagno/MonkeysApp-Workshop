@@ -23,12 +23,6 @@ namespace MonkeyApp.View
             {
                 Navigation.PopAsync(true);
             };
-
-            ButtonSpeak.Clicked += (sender, args) =>
-            {
-                //DependencyService.Get<ITextToSpeech>().Speak(monkey.Details);
-                CrossTextToSpeech.Current.Speak(monkey.Details);
-            };
         }
     }
 }

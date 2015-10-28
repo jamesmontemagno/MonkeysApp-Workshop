@@ -7,7 +7,8 @@
         <ActivityIndicator IsRunning="{Binding IsBusy}"
                            IsVisible="{Binding IsBusy}"/>
 
-        <ListView x:Name="ListViewMonkeys" ItemsSource="{Binding Monkeys}">
+        <ListView x:Name="ListViewMonkeys" ItemsSource="{Binding Monkeys}"
+                  SelectedItem="{Binding SelectedMonkey, Mode=TwoWay}">
             <ListView.ItemTemplate>
                 <DataTemplate>
                     <ImageCell Text="{Binding Name}"
@@ -16,6 +17,6 @@
                 </DataTemplate>
             </ListView.ItemTemplate>
         </ListView>
-        <Button x:Name="ButtonGetMonkeys" Text="Get Monkeys"/>
+        <Button Command="{Binding GetMonkeysCommand}" Text="Get Monkeys"/>
     </StackLayout>
 </ContentPage>
