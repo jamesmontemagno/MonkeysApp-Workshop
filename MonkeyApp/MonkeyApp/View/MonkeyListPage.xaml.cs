@@ -16,14 +16,18 @@ namespace MonkeyApp.View
         public MonkeyListPage()
         {
             InitializeComponent();
-
             vm = new MonkeyListViewModel(Navigation);
             BindingContext = vm;
+         
         }
 
         protected override void OnAppearing()
         {
             base.OnAppearing();
+
+            if (vm.Monkeys.Count == 0)
+                vm.GetMonkeysCommand.Execute(null);
+
             MessagingCenter.Subscribe<Exception>(this, "error", async (ex) =>
             {
                 await DisplayAlert("Error", "Unable to get monkeys: " + ex.Message, "OK");

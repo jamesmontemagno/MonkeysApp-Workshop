@@ -3,12 +3,17 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="MonkeyApp.View.MonkeyListPage"
              Title="Monkeys">
+    <ContentPage.ToolbarItems>
+        <ToolbarItem x:Name="RefreshItem" 
+                     Text="Refresh" 
+                     Command="{Binding GetMonkeysCommand}"/>
+    </ContentPage.ToolbarItems>
     <StackLayout>
-        <ActivityIndicator IsRunning="{Binding IsBusy}"
-                           IsVisible="{Binding IsBusy}"/>
-
         <ListView x:Name="ListViewMonkeys" ItemsSource="{Binding Monkeys}"
-                  SelectedItem="{Binding SelectedMonkey, Mode=TwoWay}">
+                  SelectedItem="{Binding SelectedMonkey, Mode=TwoWay}"
+                  IsPullToRefreshEnabled="true"
+                  IsRefreshing="{Binding IsBusy, Mode=OneWay}"
+                  RefreshCommand="{Binding GetMonkeysCommand}">
             <ListView.ItemTemplate>
                 <DataTemplate>
                     <ImageCell Text="{Binding Name}"
@@ -17,6 +22,5 @@
                 </DataTemplate>
             </ListView.ItemTemplate>
         </ListView>
-        <Button Command="{Binding GetMonkeysCommand}" Text="Get Monkeys"/>
     </StackLayout>
 </ContentPage>

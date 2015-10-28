@@ -79,7 +79,7 @@ namespace MonkeyApp.ViewModel
             try
             {
                 IsBusy = true;
-
+                Monkeys.Clear();
                 var client = new HttpClient();
                 var json = await client.GetStringAsync("http://montemagno.com/monkeys.json");
 
