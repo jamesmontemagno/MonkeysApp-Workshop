@@ -1,4 +1,5 @@
-﻿using MonkeyApp.Model;
+﻿using MonkeyApp.Interfaces;
+using MonkeyApp.Model;
 using MonkeyApp.View;
 using Newtonsoft.Json;
 using System;
@@ -80,10 +81,9 @@ namespace MonkeyApp.ViewModel
             {
                 IsBusy = true;
                 Monkeys.Clear();
-                var client = new HttpClient();
-                var json = await client.GetStringAsync("http://montemagno.com/monkeys.json");
 
-                var list = JsonConvert.DeserializeObject<List<Monkey>>(json);
+                var list = await DependencyService.Get<IDataStore>().GetMonkeysAsync();
+
                 foreach (var item in list)
                 {
                     Monkeys.Add(item);

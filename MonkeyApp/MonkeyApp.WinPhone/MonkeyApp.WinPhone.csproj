@@ -1,5 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="..\..\packages\SQLitePCL.3.8.7.2\build\wp8\SQLitePCL.props" Condition="Exists('..\..\packages\SQLitePCL.3.8.7.2\build\wp8\SQLitePCL.props')" />
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
@@ -118,6 +119,7 @@
     </Page>
   </ItemGroup>
   <ItemGroup>
+    <None Include="app.config" />
     <None Include="packages.config" />
     <None Include="Properties\AppManifest.xml" />
     <None Include="Properties\WMAppManifest.xml">
@@ -170,6 +172,22 @@
       <HintPath>..\..\packages\WPtoolkit.4.2013.08.16\lib\wp8\Microsoft.Phone.Controls.Toolkit.dll</HintPath>
       <Private>True</Private>
     </Reference>
+    <Reference Include="Microsoft.WindowsAzure.Mobile, Version=2.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <HintPath>..\..\packages\WindowsAzure.MobileServices.2.0.0-beta\lib\wp8\Microsoft.WindowsAzure.Mobile.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="Microsoft.WindowsAzure.Mobile.Ext, Version=2.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <HintPath>..\..\packages\WindowsAzure.MobileServices.2.0.0-beta\lib\wp8\Microsoft.WindowsAzure.Mobile.Ext.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="Microsoft.WindowsAzure.Mobile.SQLiteStore, Version=2.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <HintPath>..\..\packages\WindowsAzure.MobileServices.SQLiteStore.2.0.0-beta\lib\portable-win+net45+wp8+wpa81+monotouch+monoandroid\Microsoft.WindowsAzure.Mobile.SQLiteStore.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="Microsoft.WindowsAzure.Mobile.UI, Version=2.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <HintPath>..\..\packages\WindowsAzure.MobileServices.2.0.0-beta\lib\wp8\Microsoft.WindowsAzure.Mobile.UI.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
     <Reference Include="Newtonsoft.Json, Version=7.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
       <HintPath>..\..\packages\Newtonsoft.Json.7.0.1\lib\portable-net45+wp80+win8+wpa81+dnxcore50\Newtonsoft.Json.dll</HintPath>
       <Private>True</Private>
@@ -180,6 +198,14 @@
     </Reference>
     <Reference Include="Refractored.Xam.TTS.Abstractions, Version=1.0.5.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\..\packages\Xam.Plugins.TextToSpeech.1.0.5\lib\wp8\Refractored.Xam.TTS.Abstractions.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="SQLitePCL, Version=3.8.7.2, Culture=neutral, PublicKeyToken=bddade01e9c850c5, processorArchitecture=MSIL">
+      <HintPath>..\..\packages\SQLitePCL.3.8.7.2\lib\wp8\SQLitePCL.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="SQLitePCL.Ext.WindowsPhone8.RuntimeProxy, Version=255.255.255.255, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\..\packages\SQLitePCL.3.8.7.2\lib\wp8\SQLitePCL.Ext.WindowsPhone8.RuntimeProxy.winmd</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="System.Net.Http, Version=1.5.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
@@ -211,6 +237,11 @@
       <Private>True</Private>
     </Reference>
   </ItemGroup>
+  <ItemGroup>
+    <SDKReference Include="SQLite.WP80, Version=3.8.11.1">
+      <Name>SQLite for Windows Phone %28SQLite.WP80, Version=3.8.11.1%29</Name>
+    </SDKReference>
+  </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath)\Microsoft\$(TargetFrameworkIdentifier)\$(TargetFrameworkVersion)\Microsoft.$(TargetFrameworkIdentifier).$(TargetFrameworkVersion).Overrides.targets" />
   <Import Project="$(MSBuildExtensionsPath)\Microsoft\$(TargetFrameworkIdentifier)\$(TargetFrameworkVersion)\Microsoft.$(TargetFrameworkIdentifier).CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it.
@@ -227,7 +258,10 @@
     </PropertyGroup>
     <Error Condition="!Exists('..\..\packages\Microsoft.Bcl.Build.1.0.21\build\Microsoft.Bcl.Build.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\..\packages\Microsoft.Bcl.Build.1.0.21\build\Microsoft.Bcl.Build.targets'))" />
     <Error Condition="!Exists('..\..\packages\Xamarin.Forms.1.5.1.6471\build\portable-win+net45+wp80+win81+wpa81+MonoAndroid10+MonoTouch10+Xamarin.iOS10\Xamarin.Forms.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\..\packages\Xamarin.Forms.1.5.1.6471\build\portable-win+net45+wp80+win81+wpa81+MonoAndroid10+MonoTouch10+Xamarin.iOS10\Xamarin.Forms.targets'))" />
+    <Error Condition="!Exists('..\..\packages\SQLitePCL.3.8.7.2\build\wp8\SQLitePCL.props')" Text="$([System.String]::Format('$(ErrorText)', '..\..\packages\SQLitePCL.3.8.7.2\build\wp8\SQLitePCL.props'))" />
+    <Error Condition="!Exists('..\..\packages\SQLitePCL.3.8.7.2\build\wp8\SQLitePCL.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\..\packages\SQLitePCL.3.8.7.2\build\wp8\SQLitePCL.targets'))" />
   </Target>
   <Import Project="..\..\packages\Microsoft.Bcl.Build.1.0.21\build\Microsoft.Bcl.Build.targets" Condition="Exists('..\..\packages\Microsoft.Bcl.Build.1.0.21\build\Microsoft.Bcl.Build.targets')" />
   <Import Project="..\..\packages\Xamarin.Forms.1.5.1.6471\build\portable-win+net45+wp80+win81+wpa81+MonoAndroid10+MonoTouch10+Xamarin.iOS10\Xamarin.Forms.targets" Condition="Exists('..\..\packages\Xamarin.Forms.1.5.1.6471\build\portable-win+net45+wp80+win81+wpa81+MonoAndroid10+MonoTouch10+Xamarin.iOS10\Xamarin.Forms.targets')" />
+  <Import Project="..\..\packages\SQLitePCL.3.8.7.2\build\wp8\SQLitePCL.targets" Condition="Exists('..\..\packages\SQLitePCL.3.8.7.2\build\wp8\SQLitePCL.targets')" />
 </Project>
