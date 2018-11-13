@@ -1,0 +1,76 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://xamarin.com/schemas/2014/forms"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:local="clr-namespace:MonkeyFinder"
+             xmlns:viewmodel="clr-namespace:MonkeyFinder.ViewModel"
+             xmlns:circle="clr-namespace:ImageCircle.Forms.Plugin.Abstractions;assembly=ImageCircle.Forms.Plugin"
+             xmlns:ios="clr-namespace:Xamarin.Forms.PlatformConfiguration.iOSSpecific;assembly=Xamarin.Forms.Core"
+             ios:Page.UseSafeArea="True"
+             x:Class="MonkeyFinder.View.MainPage"
+             Title="{Binding Title}">
+
+    <ContentPage.BindingContext>
+        <viewmodel:MonkeysViewModel/>
+    </ContentPage.BindingContext>
+
+    <Grid RowSpacing="0" ColumnSpacing="5" CompressedLayout.IsHeadless="True">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+        <ListView ItemsSource="{Binding Monkeys}"
+                  CachingStrategy="RecycleElement"
+                  ItemSelected="ListView_ItemSelected"
+                  HasUnevenRows="True"
+                  Grid.ColumnSpan="2">
+            <ListView.ItemTemplate>
+                <DataTemplate>
+                    <ViewCell>
+                        <Grid ColumnSpacing="10" Padding="10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="60"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <circle:CircleImage Source="{Binding Image}"
+                                    HorizontalOptions="Center"
+                                    VerticalOptions="Center"
+                                    BorderColor="{StaticResource PrimaryDark}"
+                                    BorderThickness="3"
+                                   WidthRequest="60"
+                                   HeightRequest="60"
+                                   Aspect="AspectFill"/>
+                            <StackLayout Grid.Column="1"
+                                         VerticalOptions="Center">
+                                <Label Text="{Binding Name}"/>
+                                <Label Text="{Binding Location}"/>
+                            </StackLayout>
+                        </Grid>
+                    </ViewCell>
+                </DataTemplate>
+            </ListView.ItemTemplate>
+        </ListView>
+
+        <Button Text="Search" 
+                Command="{Binding GetMonkeysCommand}"
+                IsEnabled="{Binding IsNotBusy}"
+                Grid.Row="1"
+                Grid.Column="0"/>
+        <Button Text="Find Closest" 
+                Command="{Binding GetClosestCommand}"
+                IsEnabled="{Binding IsNotBusy}"
+                Grid.Row="1"
+                Grid.Column="1"/>
+
+
+        <ActivityIndicator IsVisible="{Binding IsBusy}"
+                           IsRunning="{Binding IsBusy}"
+                           HorizontalOptions="FillAndExpand"
+                           VerticalOptions="CenterAndExpand"
+                           Grid.RowSpan="2"
+                           Grid.ColumnSpan="2"/>
+    </Grid>
+</ContentPage>
