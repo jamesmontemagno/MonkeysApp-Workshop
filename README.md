@@ -1,23 +1,26 @@
-# Xamarin Dev Days Hands On Lab
+# Xamarin Monkeys - Hands On Lab
 
-Today we will build a cloud connected [Xamarin.Forms](https://xamarin.com/forms) application that will display a list of Xamarin Dev Days speaker. We will start by building the business logic backend that pulls down json-ecoded data from a RESTful endpoint. Then we will connect it to an Azure Mobile App backend in just a few lines of code.
+Today we will build a cloud connected [Xamarin.Forms](https://docs.microsoft.com/xamarin/) application that will display a list of Monkeys from around the world. We will start by building the business logic backend that pulls down json-ecoded data from a RESTful endpoint. We will then leverage [Xamarin.Essentials](https://docs.microsoft.com/xamarin/essentials/index) to find the closest monkey to us and also show the monkey on a map. Finally, we will connect it to an Azure backend leveraging [Azure Cosmos DB](https://azure.microsoft.com/services/cosmos-db/) and [Azure Functions](https://azure.microsoft.com/en-us/services/functions/) in just a few lines of code.
+
+## Setup Guide
+Follow our simple [setup guide](https://github.com/xamarin/dev-days-labs/raw/master/Xamarin%20Workshop%20Setup.pdf) to ensure you have Visual Studio and Xamarin setup and ready to deploy.
 
 ## Mobile App Walkthrough
 
 ### 1. Open Solution in Visual Studio
 
-1. Open **Start/DevDaysSpeakers.sln**
+1. Open **Start/MonkeyFinder.sln**
 
-This solution contains 4 projects
+This MonkeyFinder contains 4 projects
 
-* DevDaysSpeakers  - Shared Project that will have all shared code (model, views, and view models)
-* DevDaysSpeakers.Droid - Xamarin.Android application
-* DevDaysSpeakers.iOS - Xamarin.iOS application (requires a macOS build host)
-* DevDaysSpeakers.UWP - Windows 10 UWP application (requires Visual Studio 2015/2017 on Windows 10)
+* MonkeyFinder  - Shared .NET Standard project that will have all shared code (model, views, view models, and services)
+* MonkeyFinder.Android - Xamarin.Android application
+* MonkeyFinder.iOS - Xamarin.iOS application (requires a macOS build host)
+* MonkeyFinder.UWP - Windows 10 UWP application (requires Visual Studio /2017 on Windows 10)
 
-![Solution](https://content.screencast.com/users/JamesMontemagno/folders/Jing/media/44f4caa9-efb9-4405-95d4-7341608e1c0a/Portable.png)
+![Solution](Art/Solution.PNG)
 
-The **DevDaysSpeakers** project also has blank code files and XAML pages that we will use during the Hands on Lab.
+The **MonkeyFinder** project also has blank code files and XAML pages that we will use during the Hands on Lab. All of the code that we modify will be in this project for the workshop.
 
 ### 2. NuGet Restore
 
@@ -25,33 +28,77 @@ All projects have the required NuGet packages already installed, so there will b
 
 1. **Right-click** on the **Solution** and selecting **Restore NuGet packages...**
 
-![Restore NuGets](https://content.screencast.com/users/JamesMontemagno/folders/Jing/media/a31a6bff-b45d-4c60-a602-1359f984e80b/2016-07-11_1328.png)
+![Restore NuGets](Art/RestoreNuGets.PNG)
 
 ### 3. Model
 
-We will download details about the speakers.
+We will download details about the monkey and will need a class to represent it.
 
-1. Open `Speaker.cs`
-2. In `Speaker.cs`, copy/paste the following properties:
+We can easily convert our json file located at [montemagno.com/monkeys.json]("https://montemagno.com/monkeys.json) by using [quicktype.io](https://app.quicktype.io/) and pasting the raw json into quicktype to generate our C# classes. Ensure that you set the Name to `Monkey` and the generated namespace to `MonkeyFinder.Model` and select C#. Here is a direct URL to the code: [https://app.quicktype.io?share=W43y1rUvk1FBQa5RsBC0](https://app.quicktype.io?share=W43y1rUvk1FBQa5RsBC0)
+
+![](Art/QuickType.PNG)
+
+1. Open `Model/Monkey.cs`
+2. In `Monkey.cs`, copy/paste the following:
 
 ```csharp
-public string Id { get; set; }
-public string Name { get; set; }
-public string Description { get; set; }
-public string Website { get; set; }
-public string Title { get; set; }
-public string Avatar { get; set; }
+public partial class Monkey
+{
+    [JsonProperty("Name")]
+    public string Name { get; set; }
+
+    [JsonProperty("Location")]
+    public string Location { get; set; }
+
+    [JsonProperty("Details")]
+    public string Details { get; set; }
+
+    [JsonProperty("Image")]
+    public Uri Image { get; set; }
+
+    [JsonProperty("Population")]
+    public long Population { get; set; }
+
+    [JsonProperty("Latitude")]
+    public double Latitude { get; set; }
+
+    [JsonProperty("Longitude")]
+    public double Longitude { get; set; }
+}
+
+public partial class Monkey
+{
+    public static Monkey[] FromJson(string json) => JsonConvert.DeserializeObject<Monkey[]>(json, MonkeyFinder.Model.Converter.Settings);
+}
+
+public static class Serialize
+{
+    public static string ToJson(this Monkey[] self) => JsonConvert.SerializeObject(self, MonkeyFinder.Model.Converter.Settings);
+}
+
+internal static class Converter
+{
+    public static readonly JsonSerializerSettings Settings = new JsonSerializerSettings
+    {
+        MetadataPropertyHandling = MetadataPropertyHandling.Ignore,
+        DateParseHandling = DateParseHandling.None,
+        Converters =
+        {
+            new IsoDateTimeConverter { DateTimeStyles = DateTimeStyles.AssumeUniversal }
+        },
+    };
+}
 ```
 
 ### 4. Implementing INotifyPropertyChanged
 
-*INotifyPropertyChanged* is important for data binding in MVVM Frameworks. This is an interface that, when implemented, lets our view know about changes to the model.
+*INotifyPropertyChanged* is important for data binding in MVVM Frameworks. This is an interface that, when implemented, lets our view know about changes to the model. We will implement it once in our `BaseViewModel` so all other view models that we can create can inherit from it.
 
-1. In Visual Studio, open `SpeakersViewModel.cs`
-2. In `SpeakersViewModel.cs`, implement INotifyPropertyChanged by changing this
+1. In Visual Studio, open `ViewModel/BaseViewModel.cs`
+2. In `BaseViewModel.cs`, implement INotifyPropertyChanged by changing this
 
 ```csharp
-public class SpeakersViewModel
+public class BaseViewModel
 {
 
 }
@@ -60,23 +107,23 @@ public class SpeakersViewModel
 to this
 
 ```csharp
-public class SpeakersViewModel : INotifyPropertyChanged
+public class BaseViewModel : INotifyPropertyChanged
 {
 
 }
 ```
 
-3. In `SpeakersViewModel.cs`, right click on `INotifyPropertyChanged`
+3. In `BaseViewModel.cs`, right click on `INotifyPropertyChanged`
 4. Implement the `INotifyPropertyChanged` Interface
    - (Visual Studio Mac) In the right-click menu, select Quick Fix -> Implement Interface
    - (Visual Studio PC) In the right-click menu, select Quick Actions and Refactorings -> Implement Interface
-5. In `SpeakersViewModel.cs`, ensure this line of code now appears:
+5. In `BaseViewModel.cs`, ensure this line of code now appears:
 
 ```csharp
 public event PropertyChangedEventHandler PropertyChanged;
 ```
 
-6. In `SpeakersViewModel.cs`, create a new method called `OnPropertyChanged`
+6. In `BaseViewModel.cs`, create a new method called `OnPropertyChanged`
     - Note: We will call `OnPropertyChanged` whenever a property updates
 
 ```csharp
@@ -87,60 +134,54 @@ private void OnPropertyChanged([CallerMemberName] string name = null)
 ```
 
 7. Add code to `OnPropertyChanged`:
-    - Visual Studio Mac and Visual Studio PC 2017 or newer
 
 ```csharp
 private void OnPropertyChanged([CallerMemberName] string name = null) =>
     PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
 ```
 
-<ul>
-    <ul>
-        <li>Visual Studio PC 2015 or earlier</li>
-    </ul>
-</ul>
+### 5. Implementing Title, IsBusy, and IsNotBusy
+
+We will create a backing field and accessors for a few properties. These properties will allow us to set the title on our pages and also let our view know that our view model is busy so we don't perform duplicate operations (like allowing the user to refresh the data multiple times). They are in the `BaseViewModel` because they are common for every page.
+
+1. In `BaseViewModel.cs`, create the backing field:
 
 ```csharp
-private void OnPropertyChanged([CallerMemberName] string name = null)
+public class BaseViewModel : INotifyPropertyChanged
 {
-    var changed = PropertyChanged;
-
-    if (changed == null)
-       return;
-
-    changed.Invoke(this, new PropertyChangedEventArgs(name));
-}
-```
-
-### 5. Implementing IsBusy
-
-We will create a backing field and accessors for a boolean property. This property will let our view know that our view model is busy so we don't perform duplicate operations (like allowing the user to refresh the data multiple times).
-
-1. In `SpeakersViewModel.cs`, create the backing field:
-
-```csharp
-public class SpeakersViewModel : INotifyPropertyChanged
-{
-    private bool isBusy;
+    bool isBusy;
+    string title;
     //...
 }
 ```
 
-2. Create the property:
+2. Create the properties:
 
 ```csharp
 public class SpeakersViewModel : INotifyPropertyChanged
 {
     //...
-    public bool IsBusy
+     public bool IsBusy
     {
-        get { return isBusy; }
+        get => isBusy;
         set
         {
+            if (isBusy == value)
+                return;
             isBusy = value;
             OnPropertyChanged();
+        }
+    }
 
-            GetSpeakersCommand.ChangeCanExecute();
+    public string Title
+    {
+        get => title;
+        set
+        {
+            if (title == value)
+                return;
+            title = value;
+            OnPropertyChanged();
         }
     }
     //...
@@ -149,54 +190,165 @@ public class SpeakersViewModel : INotifyPropertyChanged
 
 Notice that we call `OnPropertyChanged` when the value changes. The Xamarin.Forms binding infrastructure will subscribe to our **PropertyChanged** event so the UI will be notified of the change.
 
-### 6. Create ObservableCollection of Speaker
-
-We will use an `ObservableCollection<Speaker>` that will be cleared and then loaded with **Speaker** objects. We use an `ObservableCollection` because it has built-in support to raise `CollectionChanged` events when we Add or Remove items from the collection. This means we don't call `OnPropertyChanged` when updating the collection.
-
-1. In `SpeakersViewModel.cs` declare an auto-property which we will initialize to an empty collection
+We can also create the inverse of `IsBusy` by creating another property called `IsNotBusy` that returns the opposite of `IsBusy` and then raising the event of `OnPropertyChanged` when we set `IsBusy`
 
 ```csharp
 public class SpeakersViewModel : INotifyPropertyChanged
 {
     //...
-    public ObservableCollection<Speaker> Speakers { get; set; } = new ObservableCollection<Speaker>();
+    public bool IsBusy
+    {
+        get => isBusy;
+        set
+        {
+            if (isBusy == value)
+                return;
+            isBusy = value;
+            OnPropertyChanged();
+            // Also raise the IsNotBusy property changed
+            OnPropertyChanged(nameof(IsNotBusy));
+        }
+    } 
+
+    public bool IsNotBusy => !IsBusy;
     //...
 }
 ```
 
-### 7. Create GetSpeakers Method
+### 6. Creating our Data Service
 
-We are ready to create a method named `GetSpeakers` which will retrieve the speaker data from the internet. We will first implement this with a simple HTTP request, and later update it to grab and sync the data from Azure!
+Inside our our `Services` folder lives two files that represent an interface contract (`IDataService`) for getting the data and an implementation that we will fill in (`WebDataService`).
 
-1. In `SpeakersViewModel.cs`, create a method named `GetSpeakers` with that returns `async Task`:
+1. Let's first create the interface in `Services/IDataService.cs`. It will be a simple method that returns a Task of a list of monkeys. Place this code inside of: `public interface IDataService`
 
 ```csharp
-public class SpeakersViewModel : INotifyPropertyChanged
+Task<IEnumerable<Monkey>> GetMonkeysAsync();
+```
+
+Next, inside of `Services/WebDataService.cs` will live the implementation to get these monkeys. I have already brought in the namespaces required for the implementation.
+
+2. We can now implement that interface. First by adding `IDataService` to the class:
+
+Before:
+
+```csharp
+public class WebDataService 
+{
+}
+```
+
+After:
+
+```csharp
+public class WebDataService : IDataService
+{
+}
+```
+
+3. Implement the `IDataService` Interface
+   - (Visual Studio for Mac) In the right-click menu, select Quick Fix -> Implement Interface
+   - (Visual Studio PC) In the right-click menu, select Quick Actions and Refactorings -> Implement Interface
+
+Before implementing `GetMonkeysAsync` we will setup our HttpClient by setting up a shared instance inside of the class:
+
+```csharp
+HttpClient httpClient;
+HttpClient Client => httpClient ?? (httpClient = new HttpClient());
+```
+
+Now we can implement the method. We will be using async calls, so we must add the `async` attribute to the method:
+
+Before:
+
+```csharp
+public Task<IEnumerable<Monkey>> GetMonkeysAsync()
+{
+}
+```
+
+After:
+
+```csharp
+public async Task<IEnumerable<Monkey>> GetMonkeysAsync()
+{
+}
+```
+
+To get the data from our server and parse it is actually extremely easy by leveraging `HttpClient` and `Json.NET`:
+
+```csharp
+public async Task<IEnumerable<Monkey>> GetMonkeysAsync()
+{
+    var json = await Client.GetStringAsync("https://montemagno.com/monkeys.json");
+    var all = Monkey.FromJson(json);
+    return all;
+}
+```
+
+Note that in this file is a line of a code above the namespace `[assembly:Dependency(typeof(WebDataService))]`. This is the Xamarin.Forms dependency service which will automatically register this class and it's interface that we can retrieve a global instance of later.
+
+4. Let's end by ensuring we have reference at any time to this implementation by retrieving it in our `BaseViewModel` by adding the following code in the class:
+
+```csharp
+public IDataService DataService { get; }
+public BaseViewModel()
+{
+    DataService = DependencyService.Get<IDataService>();
+}
+```
+
+### 6. Create ObservableCollection of Monkeys
+
+We will use an `ObservableCollection<Monkey>` that will be cleared and then loaded with **Monkey** objects. We use an `ObservableCollection` because it has built-in support to raise `CollectionChanged` events when we Add or Remove items from the collection. This means we don't call `OnPropertyChanged` when updating the collection.
+
+1. In `MonkeysViewModel.cs` declare an auto-property which we will initialize to an empty collection. Also, we can set our Title to `Monkey Finder`.
+
+```csharp
+public class MonkeysViewModel : BaseViewModel
 {
     //...
-    private async Task GetSpeakers()
+    public ObservableCollection<Monkey> Monkeys { get; }
+    public MonkeysViewModel()
     {
-
+        Title = "Monkey Finder";
+        Monkeys = new ObservableCollection<Monkey>();
     }
     //...
 }
 ```
 
-2. In `GetSpeakers`, first ensure `IsBusy` is false. If it is true, `return`
+### 7. Create GetMonkeysAsync Method
+
+We are ready to create a method named `GetMonkeysAsync` which will retrieve the monkey data from the internet. We will first implement this with a simple HTTP request, and later update it to grab and sync the data from Azure!
+
+1. In `SpeakersViewModel.cs`, create a method named `GetMonkeysAsync` with that returns `async Task`:
 
 ```csharp
-private async Task GetSpeakers()
+public class MonkeysViewModel : BaseViewModel
+{
+    //...
+    async Task GetMonkeysAsync()
+    {
+    }
+    //...
+}
+```
+
+2. In `GetMonkeysAsync`, first ensure `IsBusy` is false. If it is true, `return`
+
+```csharp
+async Task GetMonkeysAsync()
 {
     if (IsBusy)
         return;
 }
 ```
 
-3. In `GetSpeakers`, add some scaffolding for try/catch/finally blocks
+3. In `GetMonkeysAsync`, add some scaffolding for try/catch/finally blocks
     - Notice, that we toggle *IsBusy* to true and then false when we start to call to the server and when we finish.
 
 ```csharp
-private async Task GetSpeakers()
+async Task GetMonkeysAsync()
 {
     if (IsBusy)
         return;
@@ -206,7 +358,7 @@ private async Task GetSpeakers()
         IsBusy = true;
 
     }
-    catch (Exception e)
+    catch (Exception ex)
     {
 
     }
@@ -218,81 +370,52 @@ private async Task GetSpeakers()
 }
 ```
 
-4. In the `try` block of `GetSpeakers`, create a new instance of `HttpClient`.     - We will use `HttpClient` to get the json-ecoded data from the server
+4. In the `try` block of `GetMonkeysAsync`, we can get the monkeys from our Data Service.
 
 ```csharp
-private async Task GetSpeakers()
+async Task GetMonkeysAsync()
 {
     ...
     try
     {
         IsBusy = true;
 
-        using(var client = new HttpClient())
-        {
-            var json = await client.GetStringAsync("https://demo8598876.mockable.io/speakers");
-        }
+        var monkeys = await DataService.GetMonkeysAsync();
     }
     ... 
 }
 ```
 
-5. Inside of the `using` we just created, deserialize the json data and turn it into a list of Speakers using Json.NET:
+6. Inside of the `using`, clear the `Monkeys` property and then add the new monkey data:
 
 ```csharp
-private async Task GetSpeakers()
-{
-    ...
-    try
-    {
-        IsBusy = true;
-
-        using(var client = new HttpClient())
-        {
-            var json = await client.GetStringAsync("https://demo8598876.mockable.io/speakers");
-
-            var items = JsonConvert.DeserializeObject<List<Speaker>>(json);
-        }
-    }
-    ... 
-}
-```
-
-6. Inside of the `using`, clear the `Speakers` property and then add the new speaker data:
-
-```csharp
-private async Task GetSpeakers()
+async Task GetMonkeysAsync()
 {
     //...
     try
     {
         IsBusy = true;
 
-        using(var client = new HttpClient())
-        {
-            var json = await client.GetStringAsync("https://demo8598876.mockable.io/speakers");
+        var monkeys = await DataService.GetMonkeysAsync();
 
-            var items = JsonConvert.DeserializeObject<List<Speaker>>(json);
-
-            Speakers.Clear();
-
-            foreach (var item in items)
-                Speakers.Add(item);
-        }
+        Monkeys.Clear();
+        foreach (var monkey in monkeys)
+            Monkeys.Add(monkey);
     }
     //...
 }
 ```
 
-7. In `GetSpeakers`, add this code to the `catch` block to display a popup if the data retrieval fails:
+7. In `GetMonkeysAsync`, add this code to the `catch` block to display a popup if the data retrieval fails:
 
 ```csharp
-private async Task GetSpeakers()
+async Task GetMonkeysAsync()
 {
     //...
-    catch(Exception e)
+    catch(Exception ex)
     {
-        await Application.Current.MainPage.DisplayAlert("Error!", e.Message, "OK");
+        Debug.WriteLine($"Unable to get monkeys: {ex.Message}");
+        await Application.Current.MainPage.DisplayAlert("Error!", ex.Message, "OK");
     }
     //...
 }
@@ -301,7 +424,7 @@ private async Task GetSpeakers()
 8. Ensure the completed code looks like this:
 
 ```csharp
-private async Task GetSpeakers()
+async Task GetMonkeysAsync()
 {
     if (IsBusy)
         return;
@@ -310,23 +433,16 @@ private async Task GetSpeakers()
     {
         IsBusy = true;
 
-        using(var client = new HttpClient())
-        {
-            //grab json from server
-            var json = await client.GetStringAsync("https://demo8598876.mockable.io/speakers");
+        var monkeys = await DataService.GetMonkeysAsync();
 
-            //Deserialize json
-            var items = JsonConvert.DeserializeObject<List<Speaker>>(json);
-
-            //Load speakers into list
-            Speakers.Clear();
-            foreach (var item in items)
-                Speakers.Add(item);
-        }
+        Monkeys.Clear();
+        foreach (var monkey in monkeys)
+            Monkeys.Add(monkey);
     }
-    catch (Exception e)
+    catch (Exception ex)
     {
-        await Application.Current.MainPage.DisplayAlert("Error!", e.Message, "OK");
+        Debug.WriteLine($"Unable to get monkeys: {ex.Message}");
+        await Application.Current.MainPage.DisplayAlert("Error!", ex.Message, "OK");
     }
     finally
     {
@@ -337,17 +453,17 @@ private async Task GetSpeakers()
 
 Our main method for getting data is now complete!
 
-#### 8. Create GetSpeakers Command
+#### 8. Create GetMonkeys Command
 
 Instead of invoking this method directly, we will expose it with a `Command`. A `Command` has an interface that knows what method to invoke and has an optional way of describing if the Command is enabled.
 
-1. In `SpeakersViewModel.cs`, create a new Command called `GetSpeakersCommand`:
+1. In `MonkeysViewModel.cs`, create a new Command called `GetMonkeysCommand`:
 
 ```csharp
-public class SpeakersViewModel : INotifyPropertyChanged
+public class MonkeysViewModel : BaseViewModel
 {
     //...
-    public Command GetSpeakersCommand { get; }
+    public Command GetMonkeysCommand { get; }
     //...
 }
 ```
@@ -357,172 +473,329 @@ public class SpeakersViewModel : INotifyPropertyChanged
     - Another that determines if the command is enabled. Both methods can be implemented as lambda expressions as shown below:
 
 ```csharp
-public class SpeakersViewModel : INotifyPropertyChanged
+public class MonkeysViewModel : BaseViewModel
 {
     //...
-    public SpeakersViewModel()
+    public MonkeysViewModel()
     {
-        GetSpeakersCommand = new Command(async () => await GetSpeakers(),() => !IsBusy);
+        //...
+        GetMonkeysCommand = new Command(async () => await GetMonkeysAsync());
     }
     //...
 }
 ```
 
-## 9. Build The SpeakersPage User Interface
-It is now time to build the Xamarin.Forms user interface in `View/SpeakersPage.xaml`.
+## 9. Build The Monkeys User Interface
+It is now time to build the Xamarin.Forms user interface in `View/MainPage.xaml`. Our end result is to build a page that looks like this:
 
-1. In `SpeakersPage.xaml`, add a `StackLayout` between the `ContentPage` tags
-    - By setting `Spacing="0"`, we're requesting that no space is added between the contents of the `StackLayout`
+![](Art/FinalUI.PNG)
+
+1. In `MainPage.xaml`, add a `BindingContext` between the `ContentPage` tags, which will enable us to get binding intellisense:
 
 ```xml
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://xamarin.com/schemas/2014/forms"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             x:Class="DevDaysSpeakers.View.SpeakersPage"
-             Title="Speakers">
+             xmlns:local="clr-namespace:MonkeyFinder"
+             xmlns:viewmodel="clr-namespace:MonkeyFinder.ViewModel"
+             xmlns:circle="clr-namespace:ImageCircle.Forms.Plugin.Abstractions;assembly=ImageCircle.Forms.Plugin"
+             x:Class="MonkeyFinder.View.MainPage">
 
-    <StackLayout Spacing="0">
-
-    </StackLayout>
+    <!-- Add this -->
+    <ContentPage.BindingContext>
+        <viewmodel:MonkeysViewModel/>
+    </ContentPage.BindingContext>
 
 </ContentPage>
 ```
 
-2. In `SpeakersPage.xaml`, add a `Button` that has a binding to `GetSpeakersCommand`
-    - The command will be executed whenever the user taps the button.
+2. We can create our first binding on the `ContentPage` by adding the `Title` Property:
 
 ```xml
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://xamarin.com/schemas/2014/forms"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             x:Class="DevDaysSpeakers.View.SpeakersPage"
-             Title="Speakers">
+             xmlns:local="clr-namespace:MonkeyFinder"
+             xmlns:viewmodel="clr-namespace:MonkeyFinder.ViewModel"
+             xmlns:circle="clr-namespace:ImageCircle.Forms.Plugin.Abstractions;assembly=ImageCircle.Forms.Plugin"
+             x:Class="MonkeyFinder.View.MainPage"
+             Title="{Binding Title}"> <!-- Add this -->
 
-    <StackLayout Spacing="0">
-
-        <Button Text="Sync Speakers" Command="{Binding GetSpeakersCommand}"/>
-
-    </StackLayout>
+    <ContentPage.BindingContext>
+        <viewmodel:MonkeysViewModel/>
+    </ContentPage.BindingContext>
 
 </ContentPage>
 ```
 
-3. In `SpeakersPage.xaml`, under the button, add an `ActivityIndicator`
-    - The `ActivityIndicator` is a spinning indicator we'll use to let the user know we are retrieving the files in the background
-    - The `ActivityIndicator` will be bound to `IsBusy`
+2. In the `MainPage.xaml`, we can add a `Grid` between the `ContentPage` tags with 2 rows and 2 columns. We will also set the `RowSpacing` and `ColumnSpacing` to
 
 ```xml
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://xamarin.com/schemas/2014/forms"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             x:Class="DevDaysSpeakers.View.SpeakersPage"
-             Title="Speakers">
+             xmlns:local="clr-namespace:MonkeyFinder"
+             xmlns:viewmodel="clr-namespace:MonkeyFinder.ViewModel"
+             xmlns:circle="clr-namespace:ImageCircle.Forms.Plugin.Abstractions;assembly=ImageCircle.Forms.Plugin"
+             x:Class="MonkeyFinder.View.MainPage"
+             Title="{Binding Title}">
 
-    <StackLayout Spacing="0">
+    <ContentPage.BindingContext>
+        <viewmodel:MonkeysViewModel/>
+    </ContentPage.BindingContext>
 
-        <Button Text="Sync Speakers" Command="{Binding GetSpeakersCommand}"/>
-
-        <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}"/>
-
-    </StackLayout>
-
+    <!-- Add this -->
+    <Grid RowSpacing="0" ColumnSpacing="5">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+    </Grid>
 </ContentPage>
 ```
 
-4. In `SpeakersPage.xaml`, add a ListView that binds to the `Speakers` collection to display all of the items. 
-    - We will use `x:Name="ListViewSpeakers"` so that we can access this XAML control from the C# code-behind
+3. In the `MainPage.xaml`, we can add a `ListView` between the `Grid` tags that spans 2 Columns. We will also set the `ItemsSource` which will bind to our `Monkeys` ObservableCollection and additionally set a few properties for optimizing the list.
 
 ```xml
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://xamarin.com/schemas/2014/forms"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             x:Class="DevDaysSpeakers.View.SpeakersPage"
-             Title="Speakers">
+             xmlns:local="clr-namespace:MonkeyFinder"
+             xmlns:viewmodel="clr-namespace:MonkeyFinder.ViewModel"
+             xmlns:circle="clr-namespace:ImageCircle.Forms.Plugin.Abstractions;assembly=ImageCircle.Forms.Plugin"
+             x:Class="MonkeyFinder.View.MainPage"
+             Title="{Binding Title}">
 
-    <StackLayout Spacing="0">
+    <ContentPage.BindingContext>
+        <viewmodel:MonkeysViewModel/>
+    </ContentPage.BindingContext>
 
-        <Button Text="Sync Speakers" Command="{Binding GetSpeakersCommand}"/>
+    <!-- Add this -->
+    <Grid RowSpacing="0" ColumnSpacing="5">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+         <ListView ItemsSource="{Binding Monkeys}"
+                  CachingStrategy="RecycleElement"
+                  HasUnevenRows="True"
+                  Grid.ColumnSpan="2">
 
-        <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}"/>
-
-        <ListView x:Name="ListViewSpeakers"
-              ItemsSource="{Binding Speakers}"
-              CachingStrategy="RecycleElement">
-        <!--Add ItemTemplate Here-->
         </ListView>
-
-    </StackLayout>
-
+    </Grid>
 </ContentPage>
 ```
 
-5. In `SpeakersPage.xaml`, add a `ItemTemplate` to describe what each item looks like
-    - Xamarin.Forms contains a few default Templates that we can use, and we will use the `ImageCell` that displays an image and two rows of text
+4. In the `MainPage.xaml`, we can add a `ItemTemplate` to our `ListView` that will represent what each item in the list displays:
 
 ```xml
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://xamarin.com/schemas/2014/forms"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             x:Class="DevDaysSpeakers.View.SpeakersPage"
-             Title="Speakers">
+             xmlns:local="clr-namespace:MonkeyFinder"
+             xmlns:viewmodel="clr-namespace:MonkeyFinder.ViewModel"
+             xmlns:circle="clr-namespace:ImageCircle.Forms.Plugin.Abstractions;assembly=ImageCircle.Forms.Plugin"
+             x:Class="MonkeyFinder.View.MainPage"
+             Title="{Binding Title}">
 
-    <StackLayout Spacing="0">
+    <ContentPage.BindingContext>
+        <viewmodel:MonkeysViewModel/>
+    </ContentPage.BindingContext>
 
-        <Button Text="Sync Speakers" Command="{Binding GetSpeakersCommand}"/>
-
-        <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}"/>
-
-        <ListView
-            x:Name="ListViewSpeakers"
-            ItemsSource="{Binding Speakers}"
-            CachingStrategy="RecycleElement">
+    <Grid RowSpacing="0" ColumnSpacing="5">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+         <ListView ItemsSource="{Binding Monkeys}"
+                  CachingStrategy="RecycleElement"
+                  HasUnevenRows="True"
+                  Grid.ColumnSpan="2">
+            <!-- Add this -->
             <ListView.ItemTemplate>
                 <DataTemplate>
-                    <ImageCell
-                        Text="{Binding Name}"
-                        Detail="{Binding Title}"
-                        ImageSource="{Binding Avatar}"/>
+                    <ViewCell>
+                        <Grid ColumnSpacing="10" Padding="10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="60"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Image Source="{Binding Image}"
+                                    HorizontalOptions="Center"
+                                    VerticalOptions="Center"
+                                    WidthRequest="60"
+                                    HeightRequest="60"
+                                    Aspect="AspectFill"/>
+                            <StackLayout Grid.Column="1" VerticalOptions="Center">
+                                <Label Text="{Binding Name}"/>
+                                <Label Text="{Binding Location}"/>
+                            </StackLayout>
+                        </Grid>
+                    </ViewCell>
+                </DataTemplate>
+            </ListView.ItemTemplate>
+        </ListView>
+    </Grid>
+</ContentPage>
+```
+
+5. In the `MainPage.xaml`, we can add a `Button` under our `ListView` that will enable us to click it and get the monkeys from the server:
+
+```xml
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://xamarin.com/schemas/2014/forms"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:local="clr-namespace:MonkeyFinder"
+             xmlns:viewmodel="clr-namespace:MonkeyFinder.ViewModel"
+             xmlns:circle="clr-namespace:ImageCircle.Forms.Plugin.Abstractions;assembly=ImageCircle.Forms.Plugin"
+             x:Class="MonkeyFinder.View.MainPage"
+             Title="{Binding Title}">
+
+    <ContentPage.BindingContext>
+        <viewmodel:MonkeysViewModel/>
+    </ContentPage.BindingContext>
+
+
+    <Grid RowSpacing="0" ColumnSpacing="5">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+         <ListView ItemsSource="{Binding Monkeys}"
+                  CachingStrategy="RecycleElement"
+                  HasUnevenRows="True"
+                  Grid.ColumnSpan="2">
+            <ListView.ItemTemplate>
+                <DataTemplate>
+                    <ViewCell>
+                        <Grid ColumnSpacing="10" Padding="10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="60"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Image Source="{Binding Image}"
+                                    HorizontalOptions="Center"
+                                    VerticalOptions="Center"
+                                    WidthRequest="60"
+                                    HeightRequest="60"
+                                    Aspect="AspectFill"/>
+                            <StackLayout Grid.Column="1" VerticalOptions="Center">
+                                <Label Text="{Binding Name}"/>
+                                <Label Text="{Binding Location}"/>
+                            </StackLayout>
+                        </Grid>
+                    </ViewCell>
+                </DataTemplate>
+            </ListView.ItemTemplate>
+        </ListView>
+        <!-- Add this -->
+        <Button Text="Search"
+                Command="{Binding GetMonkeysCommand}"
+                IsEnabled="{Binding IsNotBusy}"
+                Grid.Row="1"
+                Grid.Column="0"/>
+    </Grid>
+</ContentPage>
+```
+
+
+6. Finally, In the `MainPage.xaml`, we can add a `ActivityIndicator` above all of our controls at the very bottom or `Grid` that will show an indication that something is happening when we press the Search button.
+
+```xml
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://xamarin.com/schemas/2014/forms"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:local="clr-namespace:MonkeyFinder"
+             xmlns:viewmodel="clr-namespace:MonkeyFinder.ViewModel"
+             xmlns:circle="clr-namespace:ImageCircle.Forms.Plugin.Abstractions;assembly=ImageCircle.Forms.Plugin"
+             x:Class="MonkeyFinder.View.MainPage"
+             Title="{Binding Title}">
+
+    <ContentPage.BindingContext>
+        <viewmodel:MonkeysViewModel/>
+    </ContentPage.BindingContext>
+
+    <Grid RowSpacing="0" ColumnSpacing="5">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+         <ListView ItemsSource="{Binding Monkeys}"
+                  CachingStrategy="RecycleElement"
+                  HasUnevenRows="True"
+                  Grid.ColumnSpan="2">
+            <ListView.ItemTemplate>
+                <DataTemplate>
+                    <ViewCell>
+                        <Grid ColumnSpacing="10" Padding="10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="60"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Image Source="{Binding Image}"
+                                    HorizontalOptions="Center"
+                                    VerticalOptions="Center"
+                                    WidthRequest="60"
+                                    HeightRequest="60"
+                                    Aspect="AspectFill"/>
+                            <StackLayout Grid.Column="1" VerticalOptions="Center">
+                                <Label Text="{Binding Name}"/>
+                                <Label Text="{Binding Location}"/>
+                            </StackLayout>
+                        </Grid>
+                    </ViewCell>
                 </DataTemplate>
             </ListView.ItemTemplate>
         </ListView>
 
-    </StackLayout>
+        <Button Text="Search"
+                Command="{Binding GetMonkeysCommand}"
+                IsEnabled="{Binding IsNotBusy}"
+                Grid.Row="1"
+                Grid.Column="0"/>
 
+
+        <!-- Add this -->
+        <ActivityIndicator IsVisible="{Binding IsBusy}"
+                           IsRunning="{Binding IsBusy}"
+                           HorizontalOptions="FillAndExpand"
+                           VerticalOptions="CenterAndExpand"
+                           Grid.RowSpan="2"
+                           Grid.ColumnSpan="2"/>
+    </Grid>
 </ContentPage>
 ```
 
-### 10. Connect SpeakersPage with SpeakersViewModel
 
-Because we have bound some elements of the View to ViewModel properties, we have to tell the View with which ViewModel to bind. For this, we have to set the `BindingContext` to the `SpeakersViewModel`.
-
-1. In `SpeakersPage.xaml.cs`, create a field `SpeakersViewModel vm`, initialize `vm` and assign it to the `BindingContext`
-
-```csharp
-public partial class SpeakersPage : ContentPage
-{
-    readonly SpeakersViewModel vm;
-
-    public SpeakersPage()
-    {
-        InitializeComponent();
-
-        // Create the view model and set as binding context
-        vm = new SpeakersViewModel();
-        BindingContext = vm;
-    }
-}
-```
-
-### 11. Run the App
+### 10. Run the App
 
 1. In Visual Studio, set the iOS, Android, or UWP project as the startup project 
-
-![Startup project](https://content.screencast.com/users/JamesMontemagno/folders/Jing/media/020972ff-2a81-48f1-bbc7-1e4b89794369/2016-07-11_1442.png)
 
 2. In Visual Studio, click "Start Debugging"
     - If you are having any trouble, see the Setup guides below for your runtime platform
 
 #### iOS Setup
+
 If you are on a Windows PC then you will need to be connected to a macOS build host with the Xamarin tools installed to run and debug the app.
 
 If connected, you will see a Green connection status. Select `iPhoneSimulator` as your target, and then select a Simulator to debug on.
@@ -531,411 +804,374 @@ If connected, you will see a Green connection status. Select `iPhoneSimulator` a
 
 #### Android Setup
 
-Set the DevDaysSpeakers.Droid as the startup project and select a simulator. The first compile may take some additional time as Support Packages may need to be downloaded.
-
-If you run into an issue building the project with an error such as:
-
-**aapt.exe exited with code** or **Unsupported major.minor version 52** then your Java JDK may not be setup correctly, or you have newer build tools installed then what is supported. See this technical bulletin for support: https://releases.xamarin.com/technical-bulletin-android-sdk-build-tools-24/
-
-Additionally, see James' blog for visual reference: https://motzcod.es/post/149717060272/fix-for-unsupported-majorminor-version-520
-
-If you are running into issues with Android support packages that can't be unzipped because of corruption please check: https://xamarinhelp.com/debugging-xamarin-android-build-and-deployment-failures/
+Set the MonkeyFinder.Android as the startup project and select your emulator or device to start debugging. With help for deployment head over to our [documentation](https://docs.microsoft.com/xamarin/android/deploy-test/debugging/).
 
 #### Windows 10 Setup
 
-Set the DevDaysSpeakers.UWP as the startup project and select debug to **Local Machine**.
+Set the MonkeyFinder.UWP as the startup project and select debug to **Local Machine**.
 
-### 12. Add Navigation
+### 12. Find Closest Monkey!
 
-Now, let's add navigation to a second page that displays speaker details!
+We can add more functionality to this page using the GPS of the device since each monkey has a latitude and longitude associated with it.
 
-1. In `SpeakersPage.xaml.cs`, under `BindingContext = vm;`, add an event to the `ListViewSpeakers` to get notified when an item is selected:
+1. In our `MonkeysViewModel.cs`, let's create another method called `GetClosestAsync`:
 
 ```csharp
-public partial class SpeakersPage : ContentPage
+async Task GetClosestAsync()
 {
-    readonly SpeakersViewModel vm;
 
-    public SpeakersPage()
-    {
-        InitializeComponent();
-
-        // Create the view model and set as binding context
-        vm = new SpeakersViewModel();
-        BindingContext = vm;
-
-        ListViewSpeakers.ItemSelected += ListViewSpeakers_ItemSelected;
-    }
 }
 ```
 
-2. In `SpeakersPage.xaml.cs`, create a method called `ListViewSpeakers_ItemSelected`:
-    - This code checks to see if the selected item is non-null and then use the built in `Navigation` API to push a new page and deselect the item.
+We can then fill it in by using Xamarin.Essentials to query for our location and helpers that find the closest monkey to us:
 
 ```csharp
-private async void ListViewSpeakers_ItemSelected(object sender, SelectedItemChangedEventArgs e)
+async Task GetClosestAsync()
 {
-    var speaker = e.SelectedItem as Speaker;
-    if (speaker == null)
+    if (IsBusy || Monkeys.Count == 0)
         return;
 
-    await Navigation.PushAsync(new DetailsPage(speaker));
-
-    ListViewSpeakers.SelectedItem = null;
-}
-```
-
-### 13. Create DetailsPage.xaml UI
-
-Let's add UI to the DetailsPage. Similar to the SpeakersPage, we will use a StackLayout, but we will wrap it in a ScrollView. This allows the user to scroll if the page content is longer than the avaliable screen space.
-
-1. In `DetailsPage.xaml`, add a `ScrollView` and a `StackLayout`
-
-```xml
-<?xml version="1.0" encoding="utf-8" ?>
-<ContentPage xmlns="http://xamarin.com/schemas/2014/forms"
-             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             x:Class="DevDaysSpeakers.View.DetailsPage"
-             Title="Details">
-    <ScrollView Padding="10">
-        <StackLayout Spacing="10">
-            <!-- Detail controls here -->
-        </StackLayout>
-    </ScrollView>
-</ContentPage>
-```
-
-2.  In `DetailsPage.xaml`, add controls and bindings for the properties in the Speaker class:
-
-```xml
-<?xml version="1.0" encoding="utf-8" ?>
-<ContentPage xmlns="http://xamarin.com/schemas/2014/forms"
-             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             x:Class="DevDaysSpeakers.View.DetailsPage"
-             Title="Details">
-
-    <ScrollView Padding="10">
-        <StackLayout Spacing="10">
-            <Image Source="{Binding Avatar}" HeightRequest="200" WidthRequest="200"/>
-
-            <Label Text="{Binding Name}" FontSize="24"/>
-            <Label Text="{Binding Title}" TextColor="Purple"/>
-            <Label Text="{Binding Description}"/>
-        </StackLayout>
-    </ScrollView>
-</ContentPage>
-```
-
-3. In `DetailsPage.xaml`, add two buttons and give them names so we can access them in the code-behind.
-     - We'll be adding click handlers to each button.
-
-```xml
-<?xml version="1.0" encoding="utf-8" ?>
-<ContentPage xmlns="http://xamarin.com/schemas/2014/forms"
-             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             x:Class="DevDaysSpeakers.View.DetailsPage"
-             Title="Details">
-
-    <ScrollView Padding="10">
-        <StackLayout Spacing="10">
-            <Image Source="{Binding Avatar}" HeightRequest="200" WidthRequest="200"/>
-
-            <Label Text="{Binding Name}" FontSize="24"/>
-            <Label Text="{Binding Title}" TextColor="Purple"/>
-            <Label Text="{Binding Description}"/>
-
-            <Button Text="Speak" x:Name="ButtonSpeak"/>
-            <Button Text="Go to Website" x:Name="ButtonWebsite"/>
-        </StackLayout>
-    </ScrollView>
-</ContentPage>
-```
-
-### 14. Add Text to Speech
-
-If we open up `DetailsPage.xaml.cs` we can now add a few more click handlers. Let's start with ButtonSpeak, where we will use the [Text To Speech Plugin](https://github.com/jamesmontemagno/TextToSpeechPlugin) to read back the speaker's description.
-
-1. In `DetailsPage.xaml.cs`, in the constructor, add a clicked handler below the BindingContext
-
-```csharp
-public partial class DetailsPage : ContentPage
-{
-    readonly Speaker speaker;
-
-    public DetailsPage(Speaker speaker)
-    {
-        InitializeComponent();
-
-        //Set local instance of speaker and set BindingContext
-        speaker = speaker;
-        BindingContext = speaker;
-
-        ButtonSpeak.Clicked += ButtonSpeak_Clicked;
-    }
-}
-```
-
-2. In `DetailsPage.xaml.cs`, create the `ButtonSpeak_Clicked` method which will call the cross-platform API for text to speech
-
-```csharp
-public partial class DetailsPage : ContentPage
-{
-    //...
-    private async void ButtonSpeak_Clicked(object sender, EventArgs e)
-    {
-        await TextToSpeech.SpeakAsync(speaker.Description);
-    }
-}
-```
-
-### 15. Add Open Website Functionality
-Xamarin.Forms includes many APIs for performing common tasks such as opening a URL in the default browser.
-
-1. In `DetailsPage.xaml.cs`, add a clicked handler for `ButtonWebsite.Clicked`:
-
-```csharp
-public partial class DetailsPage : ContentPage
-{
-    //...
-    public DetailsPage(Speaker speaker)
-    {
-        InitializeComponent();
-
-        //Set local instance of speaker and set BindingContext
-        this.speaker = speaker;
-        BindingContext = this.speaker;
-
-        ButtonSpeak.Clicked += ButtonSpeak_Clicked;
-        ButtonWebsite.Clicked += ButtonWebsite_Clicked;
-    }
-    //...
-}
-```
-
-2. In `DetailsPage.xaml.cs`, create the `ButtonSpeak_Clicked` method which will use the static class `Device` to call the `OpenUri` method
-
-```csharp
-public partial class DetailsPage : ContentPage
-{
-    //...
-    private void ButtonWebsite_Clicked(object sender, EventArgs e)
-    {
-        if (speaker.Website.StartsWith("http"))
-            Device.OpenUri(new Uri(speaker.Website));
-    }
-}
-```
-
-### 16. Compile & Run
-Now, we should be all set to compile and run our application!
-
-## Azure Backend Walkthrough
-
-Being able to grab data from a RESTful end point is great, but what about creating the back-end service? This is where Azure Mobile Apps comes in. Let's update our application to use an Azure Mobile Apps back-end.
-
-### 1. Create Azure Mobile App
-
-1. Create a Free Azure account including a free $200 credit by navigating to [this Azure Sign Up Page](https://azure.microsoft.com/free/services/mobile-apps/?WT.mc_id=none-XamarinWorkshop-bramin) and creating an account
-
-2. In the [Azure Portal](https://portal.azure.com/?WT.mc_id=none-XamarinWorkshop-bramin), select the **Create a resource** button
-3. In **New** window, tap **Mobile**
-4. In **New** window, tap **Mobile App**
-
-![Create Resource](https://user-images.githubusercontent.com/13558917/40452936-6032bcf2-5e98-11e8-991d-8bca36d61bf1.png)
-
-5. In the **Mobile App** window, enter your **App name**
-    - This is a unique name for the app that you will need when connecting your Xamarin.Forms client app to the hosted Azure Mobile App
-    - You will need to choose a globally-unique name
-    - I reccomend using *yourlastnamespeakers*
-
-6. In the **Mobile App** window, select your **Subscription**
-    - Select a subscription or create a pay-as-you-go account (this service will not cost you anything).
-
-7. In the **Mobile App** window, create a new **Resource Group**
-    - Select *Create new* and call it **DevDaysSpeakers**
-    - A resource group is just a folder that holds multiple Azure services
-
-8. In the **Mobile App** window, select create new **App Service plan/Location**
-9. In the **New App Service Plan** window, enter a unique name
-    - I reccommend *yourlastnamespeakersserver*
-10. In the **New App Service Plan** window, select a location (typically you would choose a location close to your customers)
-11. In the **New App Service Plan** window, select **Pricing tier**
-12. In the **Pricing Tier** window, select **Dev/Test**
-13. In the **Pricing Tier** window, select **Free**
-14. In the **Pricing Tier** window, select **Apply**
-15. In the **New App Service Plan** window, select **OK**
-16. In the **Mobile App** window, check **Pin to dashboard**
-17. In the **Mobile App** window, click Create
-
-![Create Mobile App](https://user-images.githubusercontent.com/13558917/40457467-6c74d398-5eab-11e8-8fe4-bf8b6669a64d.png)
-
-After clicking **Create**, it will take Azure about 3-5 minutes to create the new service, so let's head back to the code!
-
-### 2. Update AzureService.cs
-
-We will use the [Azure Mobile Apps SDK](https://azure.microsoft.com/documentation/articles/app-service-mobile-xamarin-forms-get-started/?none-XamarinWorkshop-bramin) to connect our mobile app to our Azure back-end with just a few lines of code.
-
-1. In `AzureService.cs`, add your url to the Initialize method:
-    - Be sure to update YOUR-APP-NAME-HERE with the app name you specified when creating your Azure Mobile App.
-    - My appUrl is "https://minnickspeakers.azurewebsites.net"
-
-```csharp
-var appUrl = "https://YOUR-APP-NAME-HERE.azurewebsites.net";
-```
-
-The logic in the `Initialize` method will setup our database and create our `IMobileServiceSyncTable<Speaker>` table that we can use to retrieve speaker data from the Azure Mobile App. There are two methods that we need to fill in to get and sync data from the server.
-
-
-2. In `AzureService.cs`, update the `GetSpeakers` method to initialize, sync, and query the table for items using LINQ queries to order the results:
-
-```csharp
-public async Task<IEnumerable<Speaker>> GetSpeakers()
-{
-    await Initialize();
-    await SyncSpeakers();
-    return await table.OrderBy(s => s.Name).ToEnumerableAsync();   
-}
-```
-
-3. In `AzureService.cs`, update the `SyncSpeakers` method to sync the local database our in our app with our remote database in Azure:
-
-```csharp
-public async Task SyncSpeakers()
-{
     try
     {
-        await Client.SyncContext.PushAsync();
-        await table.PullAsync("allSpeakers", table.CreateQuery());
+        // Get cached location, else get real location.
+        var location = await Geolocation.GetLastKnownLocationAsync();
+        if (location == null)
+        {
+            location = await Geolocation.GetLocationAsync(new GeolocationRequest
+            {
+                DesiredAccuracy = GeolocationAccuracy.Medium,
+                Timeout = TimeSpan.FromSeconds(30)
+            });
+        }
+
+        // Find closest monkey to us
+        var first = Monkeys.OrderBy(m => location.CalculateDistance(
+            new Location(m.Latitude, m.Longitude), DistanceUnits.Miles))
+            .FirstOrDefault();
+
+        await Application.Current.MainPage.DisplayAlert("", first.Name + " " +
+            first.Location, "OK");
+
     }
     catch (Exception ex)
     {
-        Debug.WriteLine("Unable to sync speakers, that is alright as we have offline capabilities: " + ex);
+        Debug.WriteLine($"Unable to query location: {ex.Message}");
+        await Application.Current.MainPage.DisplayAlert("Error!", ex.Message, "OK");
     }
 }
 ```
 
-That is it for our Azure code! Just a few lines, and we are ready to pull the data from Azure.
-
-### 3. Update SpeakersViewModel.cs
-
-1. In `SpeakersViewModel.cs`, update `GetSpeakers` to use the Azure Service by amending the code in the `try` block:
+2. We can now create a new `Command` that we can bind to:
 
 ```csharp
-private async Task GetSpeakers()
+// ..
+public Command GetClosestCommand { get; }
+public MonkeysViewModel()
 {
-    //...
-    try
-    {
-        IsBusy = true;
-
-        var service = DependencyService.Get<AzureService>();
-        var items = await service.GetSpeakers();
-
-        Speakers.Clear();
-        foreach (var item in items)
-            Speakers.Add(item);
-    }
-    //...
+    // ..
+    GetClosestCommand = new Command(async () => await GetClosestAsync());
 }
 ```
 
-Now, we have implemented the code we need in our app! Amazing isn't it? The `AzureService` object will automatically handle all communication with your Azure back-end for you, do online/offline synchronization so your app works even when it's not connected.
+3. Back in our `MainPage.xaml` we can add another `Button` that will call this new method:
 
-### 3. Populate Azure Database
 
-Let's head back to the Azure Portal and populate the database!
+```xml
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://xamarin.com/schemas/2014/forms"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:local="clr-namespace:MonkeyFinder"
+             xmlns:viewmodel="clr-namespace:MonkeyFinder.ViewModel"
+             xmlns:circle="clr-namespace:ImageCircle.Forms.Plugin.Abstractions;assembly=ImageCircle.Forms.Plugin"
+             x:Class="MonkeyFinder.View.MainPage"
+             Title="{Binding Title}">
 
-1. In the [Azure Portal Dashboard](https://portal.azure.com/?WT.mc_id=none-XamarinWorkshop-bramin), click on the  **Mobile App** tile for the Azure Mobile App we created earlier.
+    <ContentPage.BindingContext>
+        <viewmodel:MonkeysViewModel/>
+    </ContentPage.BindingContext>
 
-![Select Azure Mobile App](https://user-images.githubusercontent.com/13558917/40458389-9a48ad9e-5eb0-11e8-9378-4464d4381958.png)
 
-2. On the left-hand menu, select **Quickstart**
+    <Grid RowSpacing="0" ColumnSpacing="5">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+         <ListView ItemsSource="{Binding Monkeys}"
+                  CachingStrategy="RecycleElement"
+                  HasUnevenRows="True"
+                  Grid.ColumnSpan="2">
+            <ListView.ItemTemplate>
+                <DataTemplate>
+                    <ViewCell>
+                        <Grid ColumnSpacing="10" Padding="10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="60"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Image Source="{Binding Image}"
+                                    HorizontalOptions="Center"
+                                    VerticalOptions="Center"
+                                    WidthRequest="60"
+                                    HeightRequest="60"
+                                    Aspect="AspectFill"/>
+                            <StackLayout Grid.Column="1" VerticalOptions="Center">
+                                <Label Text="{Binding Name}"/>
+                                <Label Text="{Binding Location}"/>
+                            </StackLayout>
+                        </Grid>
+                    </ViewCell>
+                </DataTemplate>
+            </ListView.ItemTemplate>
+        </ListView>
+        <Button Text="Search"
+                Command="{Binding GetMonkeysCommand}"
+                IsEnabled="{Binding IsNotBusy}"
+                Grid.Row="1"
+                Grid.Column="0"/>
 
-3. In the new window, select **Xamarin.Forms**
+        <!-- Add this -->
+        <Button Text="Find Closest" 
+                Command="{Binding GetClosestCommand}"
+                IsEnabled="{Binding IsNotBusy}"
+                Grid.Row="1"
+                Grid.Column="1"/>
 
-![Xamarin Forms Quick Start](https://user-images.githubusercontent.com/13558917/40458465-f9bf6362-5eb0-11e8-8520-4159ee8f22b3.png)
+        <ActivityIndicator IsVisible="{Binding IsBusy}"
+                           IsRunning="{Binding IsBusy}"
+                           HorizontalOptions="FillAndExpand"
+                           VerticalOptions="CenterAndExpand"
+                           Grid.RowSpan="2"
+                           Grid.ColumnSpan="2"/>
+    </Grid>
+</ContentPage>
+```
 
-4. In the **Quick Start** menu, select the box below **Connect a database**
-5. In the **Data Connections** window, select **+ Add**
-6. In the **Add data connection** window, select the **SQL Database** box
-7. In the **Database** window, select **Create a new database**
+Re-run the app to see geolocation in action!
 
-![Create Database](https://user-images.githubusercontent.com/13558917/40458584-886e203a-5eb1-11e8-9185-8a0e959e20f9.png)
+### 13. Fancy Circle Monkeys!
 
-8. In the **SQL Database** window, enter a name
-    - The name must be unique
-    - I recommend using *LastnameSpeakersDatabase*
-9. In the **SQL Database** window, select **Target Server** *Configure required settings*
-10. In the **Server** window, select **Create a new server**
-11. In the **New server** window, enter a Server name
-    - The server name must be unique and all lower-case
-    - I recommend using *lastnamespeakerserver*
-12. In the **New server** window, create a **Server admin login**
-    - This will be your username for accessing the database remotely (which we won't be doing in this lab)
-13. In the **New server** window, create a **Password**
-    - This will be your password for accessing the database remotely (which we won't be doing in this lab)
-14. In the **New server** window, **Confirm Password**
-15. In the **New server** window, select a **Location**
-    - This is the physical location where your server will be located
-    - I recommend selecting a location that is closest to your users
-16. In the **New server** window, select **Select**
+Xamarin.Forms gives developers a great base set of controls to use for applications, but can easily be extended. I created a very popular custom control call [Circle Image for Xamarin.Forms](https://github.com/jamesmontemagno/ImageCirclePlugin) and we can replace the base `Image` with a custom control:
 
-![Configure Database Server](https://user-images.githubusercontent.com/13558917/40458706-4797a8c8-5eb2-11e8-9c83-af6f4d9a5cca.png)
+In our `MainPage.xaml` replace:
 
-17. In the **SQL Database** window, select **Pricing Tier**
-18. In the **Configure** window, select **Free**
-19. In the **Configure** window, select **Apply**
+```xml
+<Image Source="{Binding Image}"
+        HorizontalOptions="Center"
+        VerticalOptions="Center"
+        WidthRequest="60"
+        HeightRequest="60"
+        Aspect="AspectFill"/>
+```
 
-![Database Pricing Tier](https://user-images.githubusercontent.com/13558917/40458930-84e5ecac-5eb3-11e8-82a1-75b958936bcf.png)
+with our new `CircleImage`:
 
-20. In the **SQL Database** window, select **Select**
+```xml
+<circle:CircleImage Source="{Binding Image}"
+                    HorizontalOptions="Center"
+                    VerticalOptions="Center"
+                    BorderColor="{StaticResource PrimaryDark}"
+                    BorderThickness="3"
+                    WidthRequest="60"
+                    HeightRequest="60"
+                    Aspect="AspectFill"/>
+```
 
-![Select SQL Database](https://user-images.githubusercontent.com/13558917/40459019-e2aa3d3e-5eb3-11e8-9dc6-258f8871db40.png)
+Note: that the `PrimaryDark` color is defined in our App.xaml as a global resource.
 
-21. In the **Add data connection** window, select **Connection String**
-22. In the **Connection string** window, select **OK**, leaving the default value
-23. In the **Add data connection** window, select **OK**
+Re-run the app to see circle images in action!
 
-![Connection String](https://user-images.githubusercontent.com/13558917/40459075-43d05a3a-5eb4-11e8-8b47-6971c22176b2.png)
+### 14. Add Navigation
 
-24. Standby while Azure creates the Data Connection
-    - This may take 3-5 minutes
+Now, let's add navigation to a second page that displays monkey details!
 
-![Data Connection Create](https://user-images.githubusercontent.com/13558917/40459143-a5437ffe-5eb4-11e8-8558-5acd9dc0e6a5.png)
+1. In `MainPage.xaml` we can add an `ItemSelected` event to the `ListView`:
 
-![Data Connection Completed](https://user-images.githubusercontent.com/13558917/40459358-cdf13eb8-5eb5-11e8-9f1f-3f161d4d3eed.png)
+Before:
 
-Our database is now created! Let's populate it with some data!
+```xml
+<ListView ItemsSource="{Binding Monkeys}"
+            CachingStrategy="RecycleElement"
+            HasUnevenRows="True"
+            Grid.ColumnSpan="2">
+```
 
-### 4. Populate Database with Data
+After:
+```xml
+<ListView ItemsSource="{Binding Monkeys}"
+            CachingStrategy="RecycleElement"
+            ItemSelected="ListView_ItemSelected"
+            HasUnevenRows="True"
+            Grid.ColumnSpan="2">
+```
 
-1. In the [Azure Portal Dashboard](https://portal.azure.com/?WT.mc_id=none-XamarinWorkshop-bramin), click on the  **Mobile App**
 
-![Select Azure Mobile App](https://user-images.githubusercontent.com/13558917/40458389-9a48ad9e-5eb0-11e8-9378-4464d4381958.png)
+2. In `MainPage.xaml.cs`, create a method called `ListView_ItemSelected`:
+    - This code checks to see if the selected item is non-null and then use the built in `Navigation` API to push a new page and deselect the item.
 
-2. In the **Mobile App** menu, enter **easy** into the search bar
-3. In the **Mobile App** menu, select **Easy tables**
+```csharp
+async void ListView_ItemSelected(object sender, SelectedItemChangedEventArgs e)
+{
+    var monkey = e.SelectedItem as Monkey;
+    if (monkey == null)
+        return;
 
-![Easy Tables](https://user-images.githubusercontent.com/13558917/40459471-6874bf96-5eb6-11e8-8e29-edb5ef08b9f8.png)
+    await Navigation.PushAsync(new DetailsPage(monkey));
 
-4. In the **Easy tables** window, select **Click here to continue**
-5. In the new **Easy tables** window, check the box **I acknowledge that this will overwrite all site contents.**
-6. In the new **Easy tables** window, select **Create TodoItem table**
-    - Ignore that it says "TodoItem Table"; selecting **Create** will create an empty table
-![Initialize Easy Tables](https://user-images.githubusercontent.com/13558917/40459585-0f9d2d8a-5eb7-11e8-8bed-6480ab69862c.png)
+    ((ListView)sender).SelectedItem = null;
+}
+```
 
-7. In the **Easy tables** window, select **Add from CSV**
+### 15. ViewModel for Details
 
-![Add From CSV](https://user-images.githubusercontent.com/13558917/40459674-92841420-5eb7-11e8-80d3-618ccc630882.png)
+1. Inside of our `ViewModel/MonkeyDetailsViewModel.cs` will house our logic for assigning the monkey to the view model and also opening a map page using Xamarin.Essentials to the monkey's location.
 
-8. In the **Add from CSV** window, select the **Folder Icon**
-9. In the file browser, locate and select the [**Speakers.csv** file](https://github.com/brminnick/dev-days-labs/blob/master/HandsOnLab/Speaker.csv) in the HandsOnLabs folder
-10. In the **Add from CSV** window, after uploading the CSV file, select the blank white button at the bottom
-    - This is the save button; it's blank because of a bug
-    - Note: If you get an error while uploading the Speaker.CSV file, it may be a bug that has been resolved. To workaround this, go to the "Application settings" under the "Settings" section and scroll to "App Settings". Change the value for MobileAppsManagement_EXTENSION_VERSION to 1.0.367 and save the changes. Now retry the "Add from CSV" process again
+Let's first create a bindable property for the `Monkey`:
 
-![Upload CSV](https://user-images.githubusercontent.com/13558917/40459751-fc8e29f0-5eb7-11e8-9534-4ad6f276c003.png)
+```csharp
+public class MonkeyDetailsViewModel : BaseViewModel
+{
+    public MonkeyDetailsViewModel()
+    {
+    }
 
-![application settings fix](appsettingsfix.png)
+    public MonkeyDetailsViewModel(Monkey monkey)
+        : this()
+    {
+        Monkey = monkey;
+        Title = $"{Monkey.Name} Details";
+    }
+    Monkey monkey;
+    public Monkey Monkey
+    {
+        get => monkey;
+        set
+        {
+            if (monkey == value)
+                return;
 
-11. Re-run your application and get data from Azure!
+            monkey = value;
+            OnPropertyChanged();
+        }
+    }
+}
+```
+
+2. Now we can create an `OpenMapCommand` and method `OpenMapAsync` to open the map to the monkey's location:
+
+```csharp
+public class MonkeyDetailsViewModel : BaseViewModel
+{
+    public Command OpenMapCommand { get; }
+    
+    public MonkeyDetailsViewModel()
+    {
+        OpenMapCommand = new Command(async () => await OpenMapAsync()); 
+    }
+
+    //..
+
+    async Task OpenMapAsync()
+    {
+        try
+        {
+            await Maps.OpenAsync(Monkey.Latitude, Monkey.Longitude);
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Unable to launch maps: {ex.Message}");
+            await Application.Current.MainPage.DisplayAlert("Error, no Maps app!", ex.Message, "OK");
+        }
+    }
+}
+```
+
+### 16. Create DetailsPage.xaml UI
+
+Let's add UI to the DetailsPage. Our end goal is to get a fancy profile screen like this:
+
+![](Art/Details.PNG)
+
+At the core is a `ScrollView`, `StackLayout`, and `Grid` to layout all of the controls nicely on the screen:
+
+```xml
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://xamarin.com/schemas/2014/forms"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:imagecircle="clr-namespace:ImageCircle.Forms.Plugin.Abstractions;assembly=ImageCircle.Forms.Plugin"
+             xmlns:viewmodel="clr-namespace:MonkeyFinder.ViewModel"
+             x:Class="MonkeyFinder.View.DetailsPage"
+             Title="{Binding Title}">
+    <ContentPage.BindingContext>
+        <viewmodel:MonkeyDetailsViewModel/>
+    </ContentPage.BindingContext>
+    <ScrollView>
+        <StackLayout>
+            <Grid>
+                <!-- Monkey image and background -->
+            </Grid>   
+            <!-- Name, map button, and details -->
+        </StackLayout>
+    </ScrollView>
+</ContentPage>
+```
+
+We can now fill in our `Grid` with the following code:
+
+```xml
+<Grid.RowDefinitions>
+    <RowDefinition Height="100"/>
+    <RowDefinition Height="Auto"/>
+</Grid.RowDefinitions>
+<Grid.ColumnDefinitions>
+    <ColumnDefinition Width="*"/>
+    <ColumnDefinition Width="Auto"/>
+    <ColumnDefinition Width="*"/>
+</Grid.ColumnDefinitions>
+<BoxView BackgroundColor="{StaticResource Primary}" HorizontalOptions="FillAndExpand"
+            HeightRequest="100" Grid.ColumnSpan="3"/>
+<StackLayout Grid.RowSpan="2" Grid.Column="1" Margin="0,50,0,0">
+
+    <imagecircle:CircleImage FillColor="White" 
+                            BorderColor="White"
+                            BorderThickness="2"
+                            Source="{Binding Monkey.Image}"
+                            VerticalOptions="Center"
+                                HeightRequest="100"
+                                WidthRequest="100"
+                            Aspect="AspectFill"/>
+</StackLayout>
+
+<Label FontSize="Micro" Text="{Binding Monkey.Location}" HorizontalOptions="Center" Grid.Row="1" Margin="10"/>
+<Label FontSize="Micro" Text="{Binding Monkey.Population}" HorizontalOptions="Center" Grid.Row="1" Grid.Column="2" Margin="10"/>
+```
+
+Finally, under the `Grid`, but inside of the `StackLayout` we will add details about the monkey.
+
+```xml
+<Label Text="{Binding Monkey.Name}" HorizontalOptions="Center" FontSize="Medium" FontAttributes="Bold"/>
+<Button Text="Open Map" 
+        Command="{Binding OpenMapCommand}"
+        HorizontalOptions="Center" 
+        WidthRequest="200" 
+        Style="{StaticResource ButtonOutline}"/>
+
+<BoxView HeightRequest="1" Color="#DDDDDD"/>
+
+<Label Text="{Binding Monkey.Details}" Margin="10"/>
+```
+
+
+### 17. iOS Optimizations
+
+On both of our `MainPage.xaml` and `DetailsPage.xaml` we can add a Xamarin.Forms platform specific that will light up special functionality for iOS to use `Safe Area` on iPhone X devices. We can simply add the following code into the `ContentPage` main node:
+
+```xml
+xmlns:ios="clr-namespace:Xamarin.Forms.PlatformConfiguration.iOSSpecific;assembly=Xamarin.Forms.Core"
+ios:Page.UseSafeArea="True"
+```
+
+That is it! our application is complete! Now on to the Azure backend which is part of our Twitch live stream.

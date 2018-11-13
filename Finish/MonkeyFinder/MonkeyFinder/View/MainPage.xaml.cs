@@ -10,7 +10,7 @@ namespace MonkeyFinder.View
             InitializeComponent();
         }
 
-        private async void ListView_ItemSelected(object sender, SelectedItemChangedEventArgs e)
+        async void ListView_ItemSelected(object sender, SelectedItemChangedEventArgs e)
         {
             var monkey = e.SelectedItem as Monkey;
             if (monkey == null)

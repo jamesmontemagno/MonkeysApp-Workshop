@@ -1,6 +1,7 @@
 ﻿using MonkeyFinder.Model;
+using System;
+using System.Diagnostics;
 using System.Threading.Tasks;
-using System.Windows.Input;
 using Xamarin.Essentials;
 using Xamarin.Forms;
 
@@ -8,24 +9,20 @@ namespace MonkeyFinder.ViewModel
 {
     public class MonkeyDetailsViewModel : BaseViewModel
     {
-        public ICommand OpenMapCommand { get; }
+        public Command OpenMapCommand { get; }
 
         public MonkeyDetailsViewModel()
         {
-            OpenMapCommand = new Command(async () => await ExecuteOpenMapCommand()); 
+
+            OpenMapCommand = new Command(async () => await OpenMapAsync()); 
         }
 
         public MonkeyDetailsViewModel(Monkey monkey) 
             : this()
         {
             Monkey = monkey;
+            Title = $"{Monkey.Name} Details";
         }
-
-        Task ExecuteOpenMapCommand()
-        {
-           return Maps.OpenAsync(Monkey.Latitude, Monkey.Longitude);
-        }
-
         Monkey monkey;
         public Monkey Monkey
         {
@@ -37,6 +34,19 @@ namespace MonkeyFinder.ViewModel
 
                 monkey = value;
                 OnPropertyChanged();
+            }
+        }
+
+        async Task OpenMapAsync()
+        {
+            try
+            {
+                await Maps.OpenAsync(Monkey.Latitude, Monkey.Longitude);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Unable to launch maps: {ex.Message}");
+                await Application.Current.MainPage.DisplayAlert("Error, no Maps app!", ex.Message, "OK");
             }
         }
     }

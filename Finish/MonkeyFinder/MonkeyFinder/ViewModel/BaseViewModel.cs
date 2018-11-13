@@ -40,10 +40,7 @@ namespace MonkeyFinder.ViewModel
             }
         }
 
-        public bool IsNotBusy
-        {
-            get => !IsBusy;
-        }
+        public bool IsNotBusy => !IsBusy;
 
         public event PropertyChangedEventHandler PropertyChanged;
         public void OnPropertyChanged([CallerMemberName]string propertyName = "") =>

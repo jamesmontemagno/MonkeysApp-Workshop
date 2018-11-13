@@ -4,6 +4,7 @@
 //
 //    var monkeys = Monkeys.FromJson(jsonString);
 
+using System;
 using System.Globalization;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
@@ -22,7 +23,7 @@ namespace MonkeyFinder.Model
         public string Details { get; set; }
 
         [JsonProperty("Image")]
-        public string Image { get; set; }
+        public Uri Image { get; set; }
 
         [JsonProperty("Population")]
         public long Population { get; set; }

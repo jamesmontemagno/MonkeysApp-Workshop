@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Threading.Tasks;
-using System.Windows.Input;
 using Xamarin.Forms;
 using Xamarin.Essentials;
 
@@ -14,21 +13,46 @@ namespace MonkeyFinder.ViewModel
     public class MonkeysViewModel : BaseViewModel
     {
         public ObservableCollection<Monkey> Monkeys { get; }
-        public ICommand GetMonkeysCommand { get; }
-        public ICommand GetClosestCommand { get; }
+        public Command GetMonkeysCommand { get; }
+        public Command GetClosestCommand { get; }
         public MonkeysViewModel()
         {
+            Title = "Monkey Finder";
             Monkeys = new ObservableCollection<Monkey>();
             GetMonkeysCommand = new Command(async () => await GetMonkeysAsync());
             GetClosestCommand = new Command(async () => await GetClosestAsync());
         }
 
-        async Task GetClosestAsync()
+    
+        async Task GetMonkeysAsync()
         {
-            if (Monkeys.Count == 0)
+            if (IsBusy)
                 return;
 
-            if (IsBusy)
+            try
+            {
+                IsBusy = true;
+
+                var monkeys = await DataService.GetMonkeysAsync();
+
+                Monkeys.Clear();
+                foreach (var monkey in monkeys)
+                    Monkeys.Add(monkey);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Unable to get monkeys: {ex.Message}");
+                await Application.Current.MainPage.DisplayAlert("Error!", ex.Message, "OK");
+            }
+            finally
+            {
+                IsBusy = false;
+            }
+        }
+
+        async Task GetClosestAsync()
+        {
+            if (IsBusy || Monkeys.Count == 0)
                 return;
             try
             {
@@ -53,33 +77,7 @@ namespace MonkeyFinder.ViewModel
             catch (Exception ex)
             {
                 Debug.WriteLine($"Unable to query location: {ex.Message}");
-                await Application.Current.MainPage.DisplayAlert("Something is wrong",
-                       "Unable to get location! :(", "OK");
-            }
-        }
-
-        async Task GetMonkeysAsync()
-        {
-            if (IsBusy)
-                return;
-
-            IsBusy = true;
-            try
-            {
-                Monkeys.Clear();
-                var monkeys = await DataService.GetMonkeysAsync();
-                foreach (var monkey in monkeys)
-                    Monkeys.Add(monkey);
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"Unable to query location: {ex.Message}");
-                await Application.Current.MainPage.DisplayAlert("Something is wrong",
-                    "OH MY GOODNESS! :(", "OK");
-            }
-            finally
-            {
-                IsBusy = false;
+                await Application.Current.MainPage.DisplayAlert("Error!", ex.Message, "OK");
             }
         }
 

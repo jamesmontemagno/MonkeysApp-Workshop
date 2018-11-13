@@ -10,8 +10,8 @@ namespace MonkeyFinder.Services
 {
     public class WebDataService : IDataService
     {
-        HttpClient client;
-        HttpClient Client => client ?? (client = new HttpClient());
+        HttpClient httpClient;
+        HttpClient Client => httpClient ?? (httpClient = new HttpClient());
         public async Task<IEnumerable<Monkey>> GetMonkeysAsync()
         {
             var json = await Client.GetStringAsync("https://montemagno.com/monkeys.json");
