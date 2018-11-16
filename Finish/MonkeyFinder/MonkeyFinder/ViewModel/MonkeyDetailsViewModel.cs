@@ -11,13 +11,16 @@ namespace MonkeyFinder.ViewModel
     {
         public Command OpenMapCommand { get; }
 
+        public Command SaveDetailsCommand { get; }
+
         public MonkeyDetailsViewModel()
         {
 
-            OpenMapCommand = new Command(async () => await OpenMapAsync()); 
+            OpenMapCommand = new Command(async () => await OpenMapAsync());
+            SaveDetailsCommand = new Command(async () => await SaveMonkey());
         }
 
-        public MonkeyDetailsViewModel(Monkey monkey) 
+        public MonkeyDetailsViewModel(Monkey monkey)
             : this()
         {
             Monkey = monkey;
@@ -47,6 +50,20 @@ namespace MonkeyFinder.ViewModel
             {
                 Debug.WriteLine($"Unable to launch maps: {ex.Message}");
                 await Application.Current.MainPage.DisplayAlert("Error, no Maps app!", ex.Message, "OK");
+            }
+        }
+
+        async Task SaveMonkey()
+        {
+            try
+            {
+                await DataService.UpdateDetails(monkey.Details, monkey.Id);
+                await Application.Current.MainPage.DisplayAlert("Saved!", "Saved!", "OK");
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Unable to save monkey details: {ex.Message}");
+                await Application.Current.MainPage.DisplayAlert("Error, no saving!", ex.Message, "OK");
             }
         }
     }
