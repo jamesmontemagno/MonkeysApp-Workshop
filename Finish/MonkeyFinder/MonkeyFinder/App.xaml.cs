@@ -1,6 +1,14 @@
-﻿using MonkeyFinder.View;
+﻿using MonkeyFinder.Helpers;
+using MonkeyFinder.View;
 using Xamarin.Forms;
 using Xamarin.Forms.Xaml;
+
+using Microsoft.AppCenter;
+using Microsoft.AppCenter.Analytics;
+using Microsoft.AppCenter.Crashes;
+using Microsoft.AppCenter.Distribute;
+
+using Device = Xamarin.Forms.Device;
 
 [assembly: XamlCompilation(XamlCompilationOptions.Compile)]
 namespace MonkeyFinder
@@ -21,6 +29,16 @@ namespace MonkeyFinder
         protected override void OnStart()
         {
             // Handle when your app starts
+            if ((Device.RuntimePlatform == Device.Android && CommonConstants.AppCenterAndroid != "AC_ANDROID") ||
+                (Device.RuntimePlatform == Device.iOS && CommonConstants.AppCenteriOS != "AC_IOS") ||
+                (Device.RuntimePlatform == Device.UWP && CommonConstants.AppCenterUWP != "AC_UWP"))
+            {
+
+                AppCenter.Start($"android={CommonConstants.AppCenterAndroid};" +
+                        $"uwp={CommonConstants.AppCenterUWP};" +
+                        $"ios={CommonConstants.AppCenteriOS}",
+                        typeof(Analytics), typeof(Crashes), typeof(Distribute));
+            }
         }
 
         protected override void OnSleep()
