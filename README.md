@@ -1175,3 +1175,141 @@ ios:Page.UseSafeArea="True"
 ```
 
 That is it! our application is complete! Now on to the Azure backend which is part of our Twitch live stream.
+
+## Azure
+
+In this next part we're going to take the data portion of the application and move it into an Azure Cosmos DB database. Then we're going to grab that data using Azure Functions. Then we'll rub a litle DevOps on it and build and deploy it using Visual Studio App Center.
+
+The best part? We're not going to have to make many changes to the Xamarin.Forms code at all in order to introduce the data into the cloud!
+
+In order to complete these next steps - set yourself up with a [free subscription to Azure!](https://azure.microsoft.com/free?WT.mc_id=xamarinworkshoptwitch-github-masoucou)
+
+## Azure Functions
+
+In order to read the data from the Azure Cosmos DB, we're going to use Azure Functions. These are awesome! They let you run code in response to **triggers** or events that start them up.
+
+In addition, they can be bound to other Azure services. So as we'll see, we can bind a Function to Azure Cosmos DB and not have to do any work in order to wire that connection up!
+
+We're going to do all of our development in VS Code. It has a great extension that makes Function development easy - and you can even deploy to Azure from it!
+
+### 18. Grab the VS Code Functions Extension
+
+Open up your copy of VS Code, go to the Extension pane, and search the store for the [Azure Functions](https://code.visualstudio.com/tutorials/functions-extension/getting-started?WT.mc_id=xamarinworkshoptwitch-github-masoucou) extension. Install that.
+
+### 19. Opening the Functions Project
+
+Once the extension is installed, let's open the Functions project and take a look around.
+
+Have VS Code open up the entire folder called `Cloud` in the `Finished` directory.
+
+(If VS Code prompts you to download any dependencies - answer yes.)
+
+There will be several files in that directory:
+
+* Models
+  * DetailUpdate.cs
+  * Monkey.cs
+* GetAllMonkeys.cs
+* UpdateMonkey.cs
+
+The `Models` folder holds classes that model the data for us. The `GetAllMonkeys.cs` is the function which will return all the monkeys from Azure Cosmos DB. The `UpdateMonkey.cs` is the Function which will update the monkey.
+
+### 20. Returning All the Monkeys
+
+Let's take a look at the `GetAllMonkeys.cs` file.
+
+```language-csharp
+public static class GetAllMonkeys
+{
+    [FunctionName("GetAllMonkeys")]
+    public static IActionResult Run(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", "post", Route = null)] HttpRequest req,
+        [CosmosDB(
+            databaseName:"monkey-db",
+            collectionName:"monkey-coll",
+            ConnectionStringSetting="CosmosConnectionString",
+            SqlQuery="SELECT * FROM c"
+        )]IEnumerable<Monkey> allMonkeys,
+        ILogger log)
+    {
+        return new OkObjectResult(allMonkeys);
+    }
+}
+```
+
+There's not much to this function!!
+
+The `[FunctionName("GetAllMonkeys")]` attribute names the function - and that's what we'll invoke it by.
+
+The `[HttpTrigger(...)] HttpRequest req` attribute and variable indicate to the Functions runtime that this Function will be _triggered_ by an HTTP request. And that request can be either a **GET** or a **POST**. Information from the request will be stuffed into the variable `req` which is of the type `HttpRequest`.
+
+Then the interesting part:
+
+```language-csharp
+[CosmosDB(
+    databaseName:"monkey-db",
+    collectionName:"monkey-coll",
+    ConnectionStringSetting="CosmosConnectionString",
+    SqlQuery="SELECT * FROM c"
+)]IEnumerable<Monkey> allMonkeys
+```
+
+This is a Functions **binding**. It indicates to the Functions runtime that this particular function will be bound to an Azure Cosmos DB account. In particular it will be accessing the `monkey-db` database, the `monkey-coll` collection, and the connection information will be included in the `CosmosConnectionString` withing the `local.settings.json` file.
+
+Then we're also telling the Functions runtime to execute a SQL query against that Cosmos collection. And put everything from that query into a `IEnumberable<Monkey> allMonkeys` variable!
+
+That attribute is doing all the work for us!!
+
+Because then all we need to do is return it!
+
+```language-csharp
+return new OkObjectResult(allMonkeys);
+```
+
+And that literally is the whole body of the function!
+
+### 21. Deploying the Function
+
+To deploy the function, go to the command pallette in VS Code, and start typing in `Azure Functions: Deploy to Function App`.
+
+Follow the rest of the on-screen instructions.
+
+When you're finished, you'll get a URL where the app resides. You'll need that in the next step.
+
+Once you have it deployed, you'll need to go into the portal and add a new value in the App Settings. The key will be `CosmosConnectionString` and the value will be: `AccountEndpoint=https://xam-workshop-twitch-db.documents.azure.com:443/;AccountKey=cNtsqO2F2X4io3Zkn0RKBZAAVGzyqR111ZlXCKPvV3sCLl0IMbD1qfXwy2BJnniOXepuCIk6PhV6WrkQJBkeEg==;`
+
+That's my read-only key.
+
+If you don't want to deploy, my function is at: https://xam-workshop-twitch-func.azurewebsites.net/api/GetAllMonkeys
+
+### 23. Consuming the Function
+
+This is pretty easy!
+
+Go into the Xamarin.Forms project. Open up the `WebDataService` class - and swap out the existing URL in `GetMonkeysAsync` for the one above.
+
+And that's it.
+
+Run the project again and you'll have new monkeys!
+
+### 24. Updating Monkeys
+
+Within the function app you'll see a means to update monkeys as well. I'll leave it as an exercise for you to go about implementing it. As you'll need to create the Azure Comos DB.
+
+The Forms project already has the stubs in place for it though.
+
+### 25. Visual Studio App Center
+
+Finally, we're going to rub a little DevOps on it with Visual Studio App Center.
+
+VS App Center is the hub for all of your mobile app needs!
+
+[Head on over](https://appcenter.ms) to create an account, and then create a new app.
+
+![app center new app screenshot](art/app-center-new-app.png)
+
+Once that's done, go on over to the **Build** tab, where you'll be able to connect the app to a repo in GitHub.
+
+![app center connect repo](art/app-center-connect-repo.png)
+
+After the appropriate credentials verification, it will search through all of your repos, ask you to select the one you want, and then you can start to configure your builds. Check out how to do it and more with the [amazing documentation here](https://docs.microsoft.com/appcenter/build/?WT.mc_id=xamarinworkshoptwitch-github-masoucou)!

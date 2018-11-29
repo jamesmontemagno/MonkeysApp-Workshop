@@ -7,5 +7,6 @@ namespace MonkeyFinder.Services
     public interface IDataService
     {
         Task<IEnumerable<Monkey>> GetMonkeysAsync();
+        Task UpdateDetails(string newDetails, string monkeyId);
     }
 }

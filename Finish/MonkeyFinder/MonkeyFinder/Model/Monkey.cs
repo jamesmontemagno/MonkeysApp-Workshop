@@ -33,6 +33,9 @@ namespace MonkeyFinder.Model
 
         [JsonProperty("Longitude")]
         public double Longitude { get; set; }
+
+        [JsonProperty("id")]
+        public string Id { get; set; }
     }
 
     public partial class Monkey
