@@ -1279,7 +1279,7 @@ Follow the rest of the on-screen instructions.
 
 When you're finished, you'll get a URL where the app resides. You'll need that in the next step.
 
-Once you have it deployed, you'll need to go into the portal and add a new value in the App Settings. The key will be `CosmosConnectionString` and the value will be: `AccountEndpoint=https://xam-workshop-twitch-db.documents.azure.com/;AccountKey=cNtsqO2F2X4io3Zkn0RKBZAAVGzyqR111ZlXCKPvV3sCLl0IMbD1qfXwy2BJnniOXepuCIk6PhV6WrkQJBkeEg==;?WT.mc_id=monkeysappworkshop-github-jamont`
+Once you have it deployed, you'll need to go into the portal and add a new value in the App Settings. The key will be `CosmosConnectionString` and the value will be: `AccountEndpoint=https://xam-workshop-twitch-db.documents.azure.com/;AccountKey=cNtsqO2F2X4io3Zkn0RKBZAAVGzyqR111ZlXCKPvV3sCLl0IMbD1qfXwy2BJnniOXepuCIk6PhV6WrkQJBkeEg==;`
 
 That's my read-only key.
 
