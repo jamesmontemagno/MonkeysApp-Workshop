@@ -3,7 +3,7 @@ Please see the updated workshop: https://github.com/jamesmontemagno/xamarin.form
 
 # Xamarin Monkeys - Hands On Lab
 
-Today we will build a cloud connected [Xamarin.Forms](https://docs.microsoft.com/xamarin/) application that will display a list of Monkeys from around the world. We will start by building the business logic backend that pulls down json-ecoded data from a RESTful endpoint. We will then leverage [Xamarin.Essentials](https://docs.microsoft.com/xamarin/essentials/index) to find the closest monkey to us and also show the monkey on a map. Finally, we will connect it to an Azure backend leveraging [Azure Cosmos DB](https://azure.microsoft.com/services/cosmos-db/) and [Azure Functions](https://azure.microsoft.com/en-us/services/functions/) in just a few lines of code.
+Today we will build a cloud connected [Xamarin.Forms](https://docs.microsoft.com/xamarin/?WT.mc_id=monkeysappworkshop-github-jamont) application that will display a list of Monkeys from around the world. We will start by building the business logic backend that pulls down json-ecoded data from a RESTful endpoint. We will then leverage [Xamarin.Essentials](https://docs.microsoft.com/xamarin/essentials/index?WT.mc_id=monkeysappworkshop-github-jamont) to find the closest monkey to us and also show the monkey on a map. Finally, we will connect it to an Azure backend leveraging [Azure Cosmos DB](https://azure.microsoft.com/services/cosmos-db/?WT.mc_id=monkeysappworkshop-github-jamont) and [Azure Functions](https://azure.microsoft.com/services/functions/?WT.mc_id=monkeysappworkshop-github-jamont) in just a few lines of code.
 
 ## Setup Guide
 Follow our simple [setup guide](https://github.com/xamarin/dev-days-labs/raw/master/Xamarin%20Workshop%20Setup.pdf) to ensure you have Visual Studio and Xamarin setup and ready to deploy.
@@ -807,7 +807,7 @@ If connected, you will see a Green connection status. Select `iPhoneSimulator` a
 
 #### Android Setup
 
-Set the MonkeyFinder.Android as the startup project and select your emulator or device to start debugging. With help for deployment head over to our [documentation](https://docs.microsoft.com/xamarin/android/deploy-test/debugging/).
+Set the MonkeyFinder.Android as the startup project and select your emulator or device to start debugging. With help for deployment head over to our [documentation](https://docs.microsoft.com/xamarin/android/deploy-test/debugging/?WT.mc_id=monkeysappworkshop-github-jamont).
 
 #### Windows 10 Setup
 
@@ -1279,7 +1279,7 @@ Follow the rest of the on-screen instructions.
 
 When you're finished, you'll get a URL where the app resides. You'll need that in the next step.
 
-Once you have it deployed, you'll need to go into the portal and add a new value in the App Settings. The key will be `CosmosConnectionString` and the value will be: `AccountEndpoint=https://xam-workshop-twitch-db.documents.azure.com:443/;AccountKey=cNtsqO2F2X4io3Zkn0RKBZAAVGzyqR111ZlXCKPvV3sCLl0IMbD1qfXwy2BJnniOXepuCIk6PhV6WrkQJBkeEg==;`
+Once you have it deployed, you'll need to go into the portal and add a new value in the App Settings. The key will be `CosmosConnectionString` and the value will be: `AccountEndpoint=https://xam-workshop-twitch-db.documents.azure.com/;AccountKey=cNtsqO2F2X4io3Zkn0RKBZAAVGzyqR111ZlXCKPvV3sCLl0IMbD1qfXwy2BJnniOXepuCIk6PhV6WrkQJBkeEg==;?WT.mc_id=monkeysappworkshop-github-jamont`
 
 That's my read-only key.
 
