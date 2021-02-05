@@ -3,7 +3,7 @@ Please see the updated workshop: https://github.com/jamesmontemagno/xamarin.form
 
 # Xamarin Monkeys - Hands On Lab
 
-Today we will build a cloud connected [Xamarin.Forms](https://docs.microsoft.com/xamarin/) application that will display a list of Monkeys from around the world. We will start by building the business logic backend that pulls down json-ecoded data from a RESTful endpoint. We will then leverage [Xamarin.Essentials](https://docs.microsoft.com/xamarin/essentials/index) to find the closest monkey to us and also show the monkey on a map. Finally, we will connect it to an Azure backend leveraging [Azure Cosmos DB](https://azure.microsoft.com/services/cosmos-db/) and [Azure Functions](https://azure.microsoft.com/en-us/services/functions/) in just a few lines of code.
+Today we will build a cloud connected [Xamarin.Forms](https://docs.microsoft.com/xamarin/?WT.mc_id=friends-0000-jamont) application that will display a list of Monkeys from around the world. We will start by building the business logic backend that pulls down json-ecoded data from a RESTful endpoint. We will then leverage [Xamarin.Essentials](https://docs.microsoft.com/xamarin/essentials/index?WT.mc_id=friends-0000-jamont) to find the closest monkey to us and also show the monkey on a map. Finally, we will connect it to an Azure backend leveraging [Azure Cosmos DB](https://azure.microsoft.com/services/cosmos-db/?WT.mc_id=friends-0000-jamont) and [Azure Functions](https://azure.microsoft.com/services/functions/?WT.mc_id=friends-0000-jamont) in just a few lines of code.
 
 ## Setup Guide
 Follow our simple [setup guide](https://github.com/xamarin/dev-days-labs/raw/master/Xamarin%20Workshop%20Setup.pdf) to ensure you have Visual Studio and Xamarin setup and ready to deploy.
@@ -807,7 +807,7 @@ If connected, you will see a Green connection status. Select `iPhoneSimulator` a
 
 #### Android Setup
 
-Set the MonkeyFinder.Android as the startup project and select your emulator or device to start debugging. With help for deployment head over to our [documentation](https://docs.microsoft.com/xamarin/android/deploy-test/debugging/).
+Set the MonkeyFinder.Android as the startup project and select your emulator or device to start debugging. With help for deployment head over to our [documentation](https://docs.microsoft.com/xamarin/android/deploy-test/debugging/?WT.mc_id=friends-0000-jamont).
 
 #### Windows 10 Setup
 
@@ -1185,7 +1185,7 @@ In this next part we're going to take the data portion of the application and mo
 
 The best part? We're not going to have to make many changes to the Xamarin.Forms code at all in order to introduce the data into the cloud!
 
-In order to complete these next steps - set yourself up with a [free subscription to Azure!](https://azure.microsoft.com/free?WT.mc_id=xamarinworkshoptwitch-github-masoucou)
+In order to complete these next steps - set yourself up with a [free subscription to Azure!](https://azure.microsoft.com/free?WT.mc_id=friends-0000-jamont)
 
 ## Azure Functions
 
@@ -1197,7 +1197,7 @@ We're going to do all of our development in VS Code. It has a great extension th
 
 ### 18. Grab the VS Code Functions Extension
 
-Open up your copy of VS Code, go to the Extension pane, and search the store for the [Azure Functions](https://code.visualstudio.com/tutorials/functions-extension/getting-started?WT.mc_id=xamarinworkshoptwitch-github-masoucou) extension. Install that.
+Open up your copy of VS Code, go to the Extension pane, and search the store for the [Azure Functions](https://code.visualstudio.com/tutorials/functions-extension/getting-started?WT.mc_id=friends-0000-jamont) extension. Install that.
 
 ### 19. Opening the Functions Project
 
@@ -1315,4 +1315,4 @@ Once that's done, go on over to the **Build** tab, where you'll be able to conne
 
 ![app center connect repo](art/app-center-connect-repo.png)
 
-After the appropriate credentials verification, it will search through all of your repos, ask you to select the one you want, and then you can start to configure your builds. Check out how to do it and more with the [amazing documentation here](https://docs.microsoft.com/appcenter/build/?WT.mc_id=xamarinworkshoptwitch-github-masoucou)!
+After the appropriate credentials verification, it will search through all of your repos, ask you to select the one you want, and then you can start to configure your builds. Check out how to do it and more with the [amazing documentation here](https://docs.microsoft.com/appcenter/build/?WT.mc_id=friends-0000-jamont)!
